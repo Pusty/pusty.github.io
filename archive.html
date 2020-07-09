@@ -1,0 +1,478 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Archive</title>
+</head>
+
+<body style="background-color:black;color:white;font-family: Consolas;">
+  <span onclick="window.location.href = 'index.html'">[Back]</span> <br/> <br/>
+  Sort by: <span onclick="sortDate()">[Date]</span> <span onclick="sortRank()">[Ranking]</span> 
+ <div id="content">
+ </div>
+  <script>
+  
+  var promiseMap = {}
+  function promiseToCreate(owner, newID, contentHTML, hasButton=true, aligned=false) {
+     if(!(owner in promiseMap)) promiseMap[owner] = []
+     promiseMap[owner].push([owner, newID, contentHTML, hasButton, aligned]);
+  }
+  function resolvePromise(owner) {
+     if(!(owner in promiseMap)) return;
+     var promises = promiseMap[owner];
+     while(promises.length != 0) {
+        var promise = promises.shift();
+        createContent(promise[0],promise[1], promise[2], promise[3], true, promise[4]);
+     }
+  }
+  
+  function createTag(owner, newID, innerText, descText, hasContent=true) {
+    var content = document.createElement("div");
+    var mainText = document.createElement("span");
+    mainText.innerHTML = innerText;
+    var desc = document.createElement("span");
+    desc.style = "color: #AAAAAA";
+    desc.innerHTML = descText;
+    
+    content.appendChild(mainText);
+    content.appendChild(document.createElement("br"));
+    content.appendChild(desc);
+    createContent(owner, newID, content.innerHTML, hasContent, false, !hasContent);
+  }
+  
+  function createData(owner, newID, htmlStuff) {
+
+    createContent(owner, newID, htmlStuff, false);
+  }
+  
+  function createContent(owner, newID, contentHTML, hasButton=true, promiseCall=false, aligned=false) {
+    if(!promiseCall && owner != "content") { promiseToCreate(owner, newID, contentHTML, hasButton, aligned); return;} // optimisation to not load all resources from the beginning
+    var main = document.getElementById(owner);
+    
+    var tag  = document.createElement("div");
+    tag.style="display: flex;align-items: flex-start;";
+    tag.id = newID+"_tag";
+    
+    if(hasButton) {
+        var button = document.createElement("button");
+        button.id = newID+"_button";
+        button.style = "border: none;background-color: inherit;color:white;"
+        button.onclick = function() { expand(newID); }
+        button.innerHTML = "&#9658;";
+        button.isPressed = false;
+        tag.appendChild(button);
+    }
+    
+    if(aligned) {
+        var button = document.createElement("button");
+        button.id = newID+"_button";
+        button.style = "border: none;background-color: inherit;color:white;"
+        button.onclick = function() { }
+        button.innerHTML = "&#9670;";
+        button.isPressed = false;
+        tag.appendChild(button);
+    }
+    
+    var innerCont  = document.createElement("div");
+    innerCont.id = newID;
+    
+    var content = document.createElement("div");
+    content.innerHTML = contentHTML;
+    content.id = newID+"_content";
+
+    innerCont.append(content)
+
+    tag.appendChild(innerCont);
+    main.appendChild(tag);
+  }
+  
+  var expandList = []
+  function expand(id, change=true) {
+  
+    if(change) {
+         //if(expandList.indexOf(id) == -1)
+            expandList.push(id)
+         //else
+         //   expandList = expandList.filter(item => item !== id)
+     }
+        
+     resolvePromise(id);
+     var tag = document.getElementById(id+"_tag");
+     var button = document.getElementById(id+"_button");
+     button.isPressed = !button.isPressed;
+     button.innerHTML = button.isPressed? "&#9660":"&#9658";
+     var content = document.getElementById(id);
+     content.childNodes.forEach(child => {
+        if(child.id.indexOf("_tag") == -1) return;
+        child.style.display = button.isPressed? "flex" : "none";
+     });
+  }
+  
+  var SORT_TYPE = "";
+  function sortDate() {
+    if(SORT_TYPE == "DATE") {
+        SORT_TYPE = "DATER";
+    }else
+        SORT_TYPE = "DATE";
+        
+    document.getElementById("content").innerHTML = "";
+    promiseMap = {}
+    generateContent();
+    expandList.forEach(id => expand(id, change=false));
+  }
+  
+  function sortRank() {
+    if(SORT_TYPE == "RANK") {
+        SORT_TYPE = "RANKR";
+    }else
+        SORT_TYPE = "RANK";
+        
+   document.getElementById("content").innerHTML = "";
+   promiseMap = {}
+   generateContent();
+   expandList.forEach(id => expand(id, change=false));
+  }
+  
+  function parseContent(contentArray, parent="content") {
+    var counter = -1;
+    
+    // sort content by rank
+    if(SORT_TYPE.startsWith("RANK")) {
+        contentArray.sort(function(entryA, entryB) {
+            var vA = 0;
+            var vB = 0;
+            if (entryA.hasOwnProperty("rank")) vA = entryA["rank"]
+            if (entryB.hasOwnProperty("rank")) vB = entryB["rank"]
+            if(SORT_TYPE.endsWith("R")) return vB - vA;
+            return vA - vB;
+        });
+    }
+
+    // sort content by date
+    if(SORT_TYPE.startsWith("DATE")) {
+        contentArray.sort(function(entryA, entryB) {
+            var vA = 0;
+            var vB = 0;
+            if (entryA.hasOwnProperty("date")) vA = parseInt(entryA["date"].split("/").reduce( (a,b) => b+a))
+            if (entryB.hasOwnProperty("date")) vB = parseInt(entryB["date"].split("/").reduce( (a,b) => b+a))
+            if(SORT_TYPE.endsWith("R")) return vB - vA;
+            return vA - vB;
+        });
+    }
+    
+    contentArray.forEach(content => {
+        counter++;
+        
+        if(Object.prototype.toString.call(content) === "[object String]") {
+            createData(parent, parent+"-plain-"+counter, content);
+            return;
+        }
+        var tagID = parent+"_"+content["title"]
+
+        if(Array.isArray(content["content"])) {
+            createTag(parent, tagID, content["title"], content["description"], content["content"].length != 0);
+            parseContent(content["content"], tagID);
+        }else {
+            createTag(parent, tagID, content["title"], content["description"], true);
+            createData(tagID, tagID+"-data", content["content"]);
+        }
+    });
+  }
+  
+   
+  function generateContent() {
+  parseContent([
+  
+    {title:"articles", description: "Articles and short papers", content: [
+        {title:"realmode-assembly", date: "17/06/17", description: 'Realmode Assembly - Writing bootable stuff',  content: [
+            "<a href='https://0x00sec.org/t/realmode-assembly-writing-bootable-stuff-part-1/2901?u=leeky' style='color: inherit;'>Part 1: Theory and Concepts</a>",
+            "<a href='https://0x00sec.org/t/realmode-assembly-writing-bootable-stuff-part-2/2992?u=leeky' style='color: inherit;'>Part 2: Hello World Bootloader</a>",
+            "<a href='https://0x00sec.org/t/realmode-assembly-writing-bootable-stuff-part-3/3116?u=leeky' style='color: inherit;'>Part 3: Building & Running</a>",
+            "<a href='https://0x00sec.org/t/realmode-assembly-writing-bootable-stuff-part-4/3317?u=leeky' style='color: inherit;'>Part 4: Basic Math OS</a>",
+            "<a href='https://0x00sec.org/t/realmode-assembly-writing-bootable-stuff-part-5/3667?u=leeky' style='color: inherit;'>Part 5: Graphic Mode</a>",
+            "<a href='https://0x00sec.org/t/realmode-assembly-writing-bootable-stuff-part-6/4915?u=leeky' style='color: inherit;'>Part 6: Let’s write a small game (1/2)</a>",
+            "<a href='https://0x00sec.org/t/realmode-assembly-writing-bootable-stuff-part-7/8798?u=leeky' style='color: inherit;'>Part 7: Let’s write a small game (2/2)</a>",
+            "<a href='https://github.com/Pusty/realmode-assembly' style='color: inherit;'>README.md</a>"
+        ]},
+        {title:"rarvm-debugger", date: "11/11/19", description: 'Looking at the RarVM',  content: [
+            "<a href='https://pagedout.institute/' style='color: inherit;'>Original Release in Paged Out! #2</a>",
+            "<a href='https://github.com/Pusty/rarvm-debugger/blob/master/rarvm-pdf.pdf' style='color: inherit;'>Archived Version of the Article</a>",
+            "<a href='https://github.com/Pusty/rarvm-debugger' style='color: inherit;'>README.md</a>"
+        ]},
+        
+    ]},
+    
+    {title: "projects", description: "Side Projects", content: [
+          {title:"F0xC-PoC", date: "25/10/16", description: 'F0xC is a crosscompiler meant to translate Java Virtual Machine Bytecode to x86 assembly.',  content: [
+            "<a href='https://github.com/Pusty/F0xC' style='color: inherit;'>README.md</a>"
+          ]},
+          {title:"F0i", date: "25/10/16", description: 'F0i is an interpreter for 16 bit x86 crosscompiled with the PoC of F0xC.',  content: [
+            "<a href='https://github.com/Pusty/F0i' style='color: inherit;'>README.md</a>"
+          ]},
+          {title:"ASMOnline", date: "05/03/17", description: 'ASMOnline is very basic web front end for Keystone, Capstone and Unicorn.',  content: [
+            "<a href='https://github.com/Pusty/ASMOnline' style='color: inherit;'>README.md</a>"
+          ]},
+          {title:"F0xPE", date: "09/04/19", description: 'F0xPE is a Windows Executable (PE format) parser and modification library written in Java.',  content: [
+            "<a href='https://github.com/Pusty/F0xPE' style='color: inherit;'>README.md</a>"
+          ]},
+          {title:"binary-jvm", date: "25/01/19", description: 'binary-jvm is a plugin for Binary Ninja to analyze Java Class files.',  content: [
+            "<a href='https://github.com/Pusty/BinaryNinjaPlugins#binary-jvm' style='color: inherit;'>README.md</a>"
+          ]},
+          {title:"binary-xtensa", date: "07/07/20", description: 'binary-jvm is a plugin for Binary Ninja for the Xtensa Architecture.',  content: [
+            "<a href='https://github.com/Pusty/BinaryNinjaPlugins#binary-xtensa' style='color: inherit;'>README.md</a>"
+          ]},
+    ]},
+    
+    {title:"writeups", description: "Writeups for various CTFs", content: [
+    
+        {title:"TCTFQuals2020", date: "27/06/20", rank: 6, description: '6th place with organizers in 0CTF/TCTF 2020 Quals',  content: [
+            {title:"flash-1", description: 'MIPS ROM Image with interrupt based obfuscation',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/TCTFQuals2020#flash-1' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+    
+        {title:"ASISCTFQuals2019", date: "20/04/19", rank: 9, description: '9th place with greunion in ASIS CTF Quals 2019',  content: [
+            {title:"Archimedes", description: 'Reversing a non-deterministic encryption algorithm',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/ASISCTFQuals2019#archimedes' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Medias", description: 'Constrain solving on input number',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/ASISCTFQuals2019#medias' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Mind Space", description: 'Reversing another encryption algorithm',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/ASISCTFQuals2019#mind-space' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        {title:"ASISFinals2018", date: "24/11/18", rank: 3, description: '3rd place with greunion in ASIS Finals 2018',  content: [
+            {title:"Light Fence", description: 'Modifying code flow to change encryption to decryption',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/ASISFinals2018#light-fence' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        {title:"ASISFinals2019", date: "15/11/19", rank: 41, description: '41th place with excusemewtf in ASIS Finals 2019',  content: [
+            {title:"Cursed App", description: 'Licence file generation',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/ASISFinals2019#cursed-app' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Helix", description: 'Another encryption algorithm to reverse',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/ASISFinals2019#helix' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        {title:"DEFCONCTFQuals2020", date: "16/05/20", rank: 18, description: '18th place with secretcr0wnwtf in DEFCON CTF Qualifiers 2020',  content: [
+            {title:"flag hunting", description: 'Reconstructing a program and input based on a debug trace',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/DEFCONCTFQuals2020#flag-hunting' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        {title:"FacebookCTF2019", date: "01/06/19", rank: 170, description: '170th place with Hackthissite in Facebook CTF 2019',  content: [
+            {title:"imageprot", description: 'Hidden image in rust binary',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/FacebookCTF2019#imageprot' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"matryoshka", description: 'Multistage Mach-O challenge',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/FacebookCTF2019#matryoshka' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        {title:"InsomnihackTeaser2019", date: "19/01/19", rank: 36, description: '36th place with greunion in Insomni\'hack teaser 2019',  content: [
+            {title:"beginner_reverse", description: 'Rust xor-based password checking binary',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/InsomnihackTeaser2019#beginner_reverse' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Junkyard", description: 'Licence key generation for given username',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/InsomnihackTeaser2019#junkyard' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        
+        {title:"InsomnihackTeaser2020", date: "18/01/20", rank: 22, description: '22th place with excusemewtf in Insomni\'hack teaser 2020',  content: [
+            {title:"kaboom", description: 'Modified UPX Crackme',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/InsomnihackTeaser2020#kaboom' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        {title:"MidnightSunCTFQuals2019", date: "05/04/19", rank: 37, description: '37th place with greunion in Midnight Sun CTF 2019 Quals',  content: [
+            {title:"hfs-mbr", description: 'Customized MBR with password for decrypting DOS Image',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/MidnightSunCTFQuals2019#hfs-mbr' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"hfs-dos", description: 'Exploiting COM binary Buffer Overflow',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/MidnightSunCTFQuals2019#hfs-dos' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"polyshell", description: 'Poly Shellcode running on x86, x86_64, ARM, ARM64 and MIPS-LE',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/MidnightSunCTFQuals2019#polyshell' style='color: inherit;'>README.md</a>"
+            ]}
+           
+        ]},
+        
+        {title:"MidnightSunCTFQuals2020", date: "03/04/20", rank: 54,  description: '54th place with excusemewtf in Midnight Sun CTF 2020 Quals',  content: [
+            {title:"avr-rev", description: 'AVR "JSON" parsing crackme',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/MidnightSunCTFQuals2020#avr-rev' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"pybonhash", description: 'Extracting information out of a flawed hashing algorithm',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/MidnightSunCTFQuals2020#pybonhash' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Indian Guessing", description: 'NaN is a not guessable floating point number',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/MidnightSunCTFQuals2020#indian-guessing' style='color: inherit;'>README.md</a>"
+            ]}
+           
+        ]},
+        
+        
+        {title:"PlaidCTF2019", date: "12/04/19", rank:159, description: '159th place with greunion in Plaid CTF 2019',  content: [
+            {title:"i can count", description: 'Optimizing program flow',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/PlaidCTF2019#i-can-count' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Space Saver", description: 'Binwalking DOS image',  content: [
+            "<a href=https://github.com/Pusty/writeups/tree/master/PlaidCTF2019#space-saver' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"can you guess me", description: 'Python Jail Escape',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/PlaidCTF2019#can-you-guess-me' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        
+        {title:"PwnThyBytesCTF2019", date: "28/09/19", rank: 22, description: '22th place with Satans0days in PwnThyBytes CTF 2019',  content: [
+            {title:"Unconventional", description: 'Breaking crypto through input-output patterns',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/PwnThyBytesCTF2019#unconventional' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        {title:"TeaserDragonCTF2019", date: "21/09/19", rank: 20, description: '20th place with Satans0days in Teaser Dragon CTF 2019',  content: [
+            {title:"ummmfpu", description: 'Breaking a self modifying crackme using a custom Micromega FPU emulator',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/TeaserDragonCTF2019#ummmfpu' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        
+        {title:"WhiteHatGrandPrix2020", date: "04/01/20", rank: 24, description: '24th place with excusemewtf in WhiteHat Grand Prix 06 – Quals',  content: [
+            {title:"re01", description: 'Reversing a stenography encryption program',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/WhiteHatGrandPrix2020#re01' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        {title:"justCTF2019", date: "20/12/19", rank: 8, description: '8th place with excusemewtf in justCTF 2019',  content: [
+            {title:"CHANGE_VM", description: 'Angr\ing a VM crackme',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/justCTF2019#change_vm' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"GoSynthesizeTheFlagYourself", description: 'Reversing a VST 3 Audio Plugin crackme',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/justCTF2019#gosynthesizetheflagyourself' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"FSMir", description: 'Reversing some SystemVerilog',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/justCTF2019#fsmir' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"FSMir 2", description: 'Reversing some more complex SystemVerilog',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/justCTF2019#fsmir-2' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+        
+        {title:"watevrctf2019", date:"13/12/19", rank: 77, description: '77th place with 0x00sec in watevrCTF 2019',  content: [
+            {title:"Repyc", description: 'Reversing an obfuscated VM in a complied python file',  content: [
+            "<a href='https://github.com/Pusty/writeups/tree/master/watevrctf2019#repyc' style='color: inherit;'>README.md</a>"
+            ]}
+        ]},
+        
+       {title:"FlareOn2018", date: "24/08/18", rank: 55, description: '55th place (individual) in Flare-On 2018',  content: [
+            {title:"Minesweeper Championship Registration", description: 'JAR Password Extraction',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge1.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Ultimate Minesweeper", description: 'C# patching',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge2.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"FLEGGO", description: 'Automated "crackme" solving',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge3.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"binstall", description: 'Firefox 54 Malware crackme within injected JavaScript',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge4.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Web 2.0", description: 'WebAssembly Crackme',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge5.md style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Magic", description: 'Self Unpacking Multistaged Linux Crackme',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge6.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"WOW", description: 'Port Knocking within x64 injected code in a 32bit binary',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge7.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"Doogie Hacker", description: '16bit x86 password guessing',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge8.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"leet editr", description: 'Visual Basic Script Crackme injected into Internet Explorer',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge9.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"golf", description: 'Kernel Level VM Reversing',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge10.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"malware_skillz", description: 'Reversing malware protocol',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge11.md' style='color: inherit;'>README.md</a>"
+            ]},
+            {title:"suspicious floppy", description: 'Reversing Code run in a VM in a VM on DOS',  content: [
+            "<a href='https://github.com/Pusty/writeups/blob/master/FlareOn2018/challenge12.md' style='color: inherit;'>README.md</a>"
+            ]},
+            "<a href='https://0x00sec.org/t/writeup-flare-on-2018/10502?u=leeky' style='color: inherit;'>Collected as a single article</a>"
+        ]},
+        
+         {title:"FlareOn2019", date: "16/08/19", rank: 9, description: '9th place (individual) in Flare-On 2019',  content: [
+         ]},
+         
+         {title:"ECSC2019", date: "08/10/19", rank: 4, description: '4th place with Team Germany in the EUROPEAN CYBER SECURITY CHALLENGE 2019',  content: [
+         ]},
+         
+    ]},
+    
+    {title:"games",  description: "Games for competitions",    content: [
+        {title:"minild71", date: "13/01/17", description: 'MiniLD71 - A retro x86 game',  content: [
+            {title:"pictures", description: '',  content:  "<img src='https://github.com/Pusty/MiniLD71/raw/master/readme/MiniLD71_0.PNG'></src><br/><img src='https://github.com/Pusty/MiniLD71/raw/master/readme/MiniLD71_1.PNG'></src><br/><img src='https://github.com/Pusty/MiniLD71/raw/master/readme/MiniLD71_2.PNG'></src>"},
+            "<a href='https://github.com/Pusty/MiniLD71' style='color: inherit;'>README.md</a>"
+        ]},
+        {title:"ludumdare33", date: "22/08/15", rank: 193, description: 'LudumDare33 "A Fox\'s Journey"',  content: [
+            {title:"pictures", description: '',  content:  "<img src='https://github.com/Pusty/LudumDare33/raw/master/readme/LudumDare33_0.PNG'></src><br/><img src='https://github.com/Pusty/LudumDare33/raw/master/readme/LudumDare33_1.PNG'>"},
+            "<a href='https://github.com/Pusty/LudumDare33' style='color: inherit;'>README.md</a>"
+        ]}, 
+        {title:"ludumdare34", date: "12/12/15", rank: 323, description: "LudumDare34 \"A Fox's Garden\"",  content: [
+            {title:"pictures", description: '',  content:  "<img src='https://github.com/Pusty/LudumDare34/raw/master/readme/LudumDare34_0.PNG'></src><br/><img src='https://github.com/Pusty/LudumDare34/raw/master/readme/LudumDare34_1.PNG'>"},
+            "<a href='https://github.com/Pusty/LudumDare34' style='color: inherit;'>README.md</a>"
+        ]}, 
+        {title:"ludumdare35", date: "13/04/16", rank: 270, description: "LudumDare35 \"A Fox's Escape\"",  content: [
+            {title:"pictures", description: '',  content:  "<img src='https://github.com/Pusty/LudumDare35/raw/master/readme/LudumDare35_0.PNG'></src><br/><img src='https://github.com/Pusty/LudumDare35/raw/master/readme/LudumDare35_1.PNG'>"},
+            "<a href='https://github.com/Pusty/LudumDare35' style='color: inherit;'>README.md</a>"
+        ]}, 
+        {title:"ludumdare36", date: "27/08/16", description: "LudumDare36 \"A Fox's Pottery\"",  content: [
+            {title:"pictures", description: '',  content:  "<img src='https://github.com/Pusty/LudumDare36/raw/master/readme/LudumDare36_0.PNG'></src><br/><img src='https://github.com/Pusty/LudumDare36/raw/master/readme/LudumDare36_1.PNG'>"},
+            "<a href='https://github.com/Pusty/LudumDare36' style='color: inherit;'>README.md</a>"
+        ]}, 
+        {title:"ludumdare37", date: "10/12/16", rank: 272, description: "LudumDare37 \"A Fox's Room\"",  content: [
+            {title:"pictures", description: '',  content:  "<img src='https://github.com/Pusty/LudumDare37/raw/master/readme/LudumDare37_0.PNG'></src><br/><img src='https://github.com/Pusty/LudumDare37/raw/master/readme/LudumDare37_1.PNG'>"},
+            "<a href='https://github.com/Pusty/LudumDare37' style='color: inherit;'>README.md</a>"
+        ]}, 
+        {title:"ludumdare38", date: "10/12/16", description: "LudumDare38 \"Worldmarbles\"",  content: [
+            {title:"pictures", description: '',  content:  "<img src='https://github.com/Pusty/LudumDare38/raw/master/readme/LudumDare38_0.PNG'></src>"},
+            "<a href='https://github.com/Pusty/LudumDare38' style='color: inherit;'>README.md</a>"
+        ]}, 
+        {title:"minild62", date: "20/09/15", description: "MiniLD62 \"Spinning\"",  content: [
+            {title:"pictures", description: '',  content:  "<img src='https://github.com/Pusty/Spinning/raw/master/readme/Sphere_0.PNG'></src><br/><img src='https://github.com/Pusty/Spinning/raw/master/readme/Sphere_1.PNG'></src>"},
+            "<a href='https://github.com/Pusty/Spinning' style='color: inherit;'>README.md</a>"
+        ]}, 
+        {title:"lowrezjam2016", date: "01/04/16", rank: 52, description: 'LowRezJam2016  "Ghostshi" (Jun&Me)',  content: [
+            {title:"pictures", description: '',  content:  "<img src='https://github.com/Pusty/LowRezJam2016/raw/master/readme/LowRezJam2016_0.PNG'></src><br/><img src='https://github.com/Pusty/LowRezJam2016/raw/master/readme/LowRezJam2016_1.PNG'></src><br/><img src='https://github.com/Pusty/LowRezJam2016/raw/master/readme/LowRezJam2016_2.PNG'></src><br/><img src='https://github.com/Pusty/LowRezJam2016/raw/master/readme/LowRezJam2016_3.PNG'></src>"},
+            "<a href='https://github.com/Pusty/LowRezJam2016' style='color: inherit;'>README.md</a>"
+        ]}, 
+        
+    ]}
+  ]);
+  }
+  
+  {
+    SORT_TYPE = "RANK"
+    expandList.push("content_writeups")
+    expandList.push("content_articles")
+    expandList.push("content_projects")
+  }
+  
+  promiseMap = {}
+  document.getElementById("content").innerHTML = "";
+  generateContent();
+  expandList.forEach(id => expand(id, change=false));
+  
+  
+  </script>
+</body>
+</html>
