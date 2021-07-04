@@ -4,10 +4,19 @@
   <meta charset="utf-8"/>
   <title>Archive</title>
   <style>
+    button:focus-visible::after {
+        position: absolute;
+        border-radius: 2px;
+        border: 1px solid white;
+        width: 14px;
+        height: 14px;
+        content: " ";
+        transform: translate(-15px, -1px);
+    }
     .fancyButton{
-	    cursor: pointer;
-      margin: -10px;
-      padding: 10px;
+        cursor: pointer;
+        margin: -10px;
+        padding: 10px;
     }
  </style> 
 </head>
@@ -74,7 +83,7 @@
     if(aligned) {
         var button = document.createElement("button");
         button.id = newID+"_button";
-        button.style = "border: none;background-color: inherit;color:white;"
+        button.style = "outline: unset;border: none;background-color: inherit;color:white;"
         button.onclick = function() { }
         button.innerHTML = "&#9670;";
         button.isPressed = false;
