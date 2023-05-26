@@ -197,7 +197,7 @@
            //ctxArray.forEach(ctx => ctx.strokeRect(0,0,ctx.canvas.width,ctx.canvas.height));
            ctxArray.filter(ctx => !(ctx.canvas.id in canvasImage)).forEach(function(ctx) {
                    var s = ctx.canvas.style.fontSize==""?"27px":ctx.canvas.style.fontSize;
-                   ctx.font = s+" Consolas";
+                   ctx.font = s+" Consolas,monaco,monospace";
                    [...ctx.canvas.childNodes].filter(n => n.nodeName === '#text').filter(n => n.textContent != '').map(n => {
                         var h = ctx.measureText('M').width;
                         var text = ctx.measureText(n.textContent);
