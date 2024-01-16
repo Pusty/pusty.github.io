@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<script type="text/javascript" id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+</script>
+
+</head>
+<body>
+a:
+<input type="number" id="a" name="a" min="0" value="1">
+b:
+<input type="number" id="b" name="b" min="0" value="2">
+n:
+<input type="number" id="pow2" name="pow2" min="1" value="32">
+<button type="button" onclick="process()">Invert</button> 
+
+
+<br>
+
+<hr>
+
+<div id="contentHere" style="overflow-x: scroll">
+</div>
+
+<hr>
+
+<div id="rotCode" style="overflow-x: scroll">
+</div>
+
+<script>
+
+// https://marc-b-reynolds.github.io/math/2017/10/13/XorRotate.html
+// The invertibility of the XOR of rotations of a binary word - https://doi.org/10.1080/00207161003596708
+
+var globalTable = [];
+var globalA = 0;
+var globalB = 0;
+var globalBits = 0;
+
+var globalAlready = 0;
+
+
+function updateRotCode() {
+    const div = document.getElementById("rotCode");
+    if(globalAlready != globalBits-1) {
+        div.innerHTML = "Selected Rotation Tuples need to add up to bit count - 1 ["+(globalAlready)+"/"+(globalBits-1)+"]";
+    }else {
+        var checkedBoxes = [];
+        for(var i=0;i<(globalBits-1);i++) {
+            const box = document.getElementById("select_"+i);
+            const boxValue = Number(box.value);
+            if(boxValue > 0) {
+                for(var j=0;j<boxValue;j++) {
+                    checkedBoxes.push(i);
+                }
+            }
+        }
+        
+        div.innerHTML =  "";
+        
+        {
+            div.appendChild(document.createTextNode("\\( f(x_0): \\mathbb{Z}^{"+globalBits+"}_2 \\to  \\mathbb{Z}^{"+globalBits+"}_2 \\)"));
+            div.appendChild(document.createElement("br"));
+            var text = "\\( y = "+globalTable[0].reduceRight((acc,x) => "\\text{rot}(z, "+x+") \\oplus "+acc, "").slice(0, -8)+"\\)";
+            text = text.replaceAll("\\text{rot}(z, 0)", "z");
+            text = text.replaceAll("z", "x_{0}");
+            text = text.replaceAll("y", "x_{1}");
+            div.appendChild(document.createTextNode(text));
+            div.appendChild(document.createElement("br"));
+            div.appendChild(document.createTextNode("\\( \\text{output } x_1  \\)"));
+            
+            div.appendChild(document.createElement("hr"));
+        }
+        
+        
+        div.appendChild(document.createTextNode("\\( f^{-1}(x_0): \\mathbb{Z}^{"+globalBits+"}_2 \\to  \\mathbb{Z}^{"+globalBits+"}_2 \\)"));
+        div.appendChild(document.createElement("br"));
+            
+        for(var i=0;i<checkedBoxes.length;i++) {
+            var text = "\\( y = "+globalTable[checkedBoxes[i]].reduceRight((acc,x) => "\\text{rot}(z, "+x+") \\oplus "+acc, "").slice(0, -8)+"\\)";
+            text = text.replaceAll("\\text{rot}(z, 0)", "z");
+            text = text.replaceAll("z", "x_{"+i+"}");
+            text = text.replaceAll("y", "x_{"+(i+1)+"}");
+            div.appendChild(document.createTextNode(text));
+            div.appendChild(document.createElement("br"));
+        }
+        div.appendChild(document.createTextNode("\\( \\text{output } x_{"+(checkedBoxes.length)+"}  \\)"));
+        div.appendChild(document.createElement("br"));
+        
+        
+    }
+    MathJax.typeset();
+}
+
+function count() {
+    var value = 0;
+    for(var i=0;i<(globalBits-1);i++) {
+        const box = document.getElementById("select_"+i);
+        const boxValue = Number(box.value);
+        value += (i+1)*boxValue;
+    }
+    return value;
+}
+
+function updateBoxes() {
+    for(var i=0;i<(globalBits-1);i++) {
+        const box = document.getElementById("select_"+i);
+        
+        var maximum = Math.floor(((globalBits-globalAlready-1))/(i+1.0));
+        
+        if(i >= (globalBits-globalAlready-1) && box.value == "0") {
+            box.disabled=true;
+        }else {
+            box.disabled=false;
+        }
+        
+        var beforeValue = Number(box.value);
+
+        box.innerHTML = "";
+        for(var j=0;j<beforeValue+maximum+1;j++) {
+            const option = document.createElement("option");
+            option.value = j+"";
+            option.innerHTML = j+"";
+            box.appendChild(option);
+        }
+        box.value = beforeValue+"";
+
+    }
+}
+
+
+function select(i) {
+    globalAlready = count();
+    updateBoxes();
+    const box = document.getElementById("select_"+i);
+    box.disabled=false;
+    updateRotCode();
+}
+
+function create_select(o, options) {
+
+    const box = document.createElement("select");
+    box.id = "select_"+o;
+
+    box.addEventListener('change', x => {
+        var index = Number(x.target.id.split("select_")[1]);
+        select(index);
+    });
+    
+    const option = document.createElement("option");
+    option.value = "0";
+    option.innerHTML = "0";
+    box.appendChild(option);
+    
+    const option2 = document.createElement("option");
+    option2.value = "1";
+    option2.innerHTML = "1";
+    box.appendChild(option2);
+    
+    return box;
+}
+
+function create_table(content, bits) {
+    const table = document.createElement("table");
+    
+    const caption = document.createElement("caption");
+    caption.innerHTML = "$$ M = I + C^{"+content[0][1]+"} + C^{"+content[0][2]+"}  \\mod 2^{"+bits+"} $$";
+    
+    table.appendChild(caption);
+    
+    for(var o=0;o<bits-1;o++) {
+        const tr = document.createElement("tr");
+        
+        tr.appendChild(create_select(o)); 
+        
+        
+        const th = document.createElement("th");
+        if(o !== bits-2) {
+            th.innerHTML = "\\(M^{-1} = [ \\)";
+        }else {
+            th.innerHTML = "\\(M^{-1} = \\)";
+        }
+        tr.appendChild(th);
+        
+        
+        
+        const td = document.createElement("td");
+        td.innerHTML = "\\(  ( "+content[o].reduceRight((acc,x) => "C^{"+x+"}+"+acc, "").slice(0, -1).replaceAll("C^{0}", "I")+" ) \\)";
+        tr.appendChild(td);
+
+        const td2 = document.createElement("td");
+        if(o !== bits-2) {
+            td2.innerHTML = "\\( = M^{"+(o+1)+"} ] \\cdot M^{"+(bits-o-2)+"} \\)";
+        }
+        tr.appendChild(td2);
+        
+        
+
+        table.appendChild(tr);
+    }
+    
+    const div = document.getElementById("contentHere");
+    div.innerHTML = "";
+    div.appendChild(table);
+    
+    globalAlready = 0;
+    document.getElementById("select_"+(bits-2)).value = "1";
+    select((bits-2));
+}
+
+
+function rot(x, i , bits) {
+    let mask = (2n ** bits)-1n;
+    return (((x&mask) << i) | ((x&mask) >> (bits-i)))&mask;
+}
+
+function xor_rot(x, a, b, bits) {
+    let mask = (2n ** bits)-1n;
+    return (x&mask)^rot(x, a, bits)^rot(x, b, bits);
+}
+
+function invert_table(a, b, bits) {
+    var x =  Array(bits).fill(0);
+    var fac = Array(bits).fill(0);
+    x[0] = 1; // identity
+    
+    fac[0] = 1; // identity
+    fac[a]  = 1; // a
+    fac[b]  = 1; // b
+    
+    var output = [];
+    
+    // M**(bits-1)
+    for(var o=0;o<bits-1;o++) {
+        var res = Array(bits*2).fill(0);
+        for(var i=0;i<bits;i++) {
+           for(var j=0;j<bits;j++) { 
+            res[(i+j)%bits] = (res[(i+j)%bits] + (x[i]*fac[j]))%2;
+           }
+        }
+        x = res;
+        output.push(x.map((e, i) => e === 1 ? i : '').filter(String));
+    }
+    return output;
+}
+
+
+function process() {
+    globalA = Number(document.getElementById("a").value);
+    globalB = Number(document.getElementById("b").value);
+    globalBits = Number(document.getElementById("pow2").value);
+    
+    const powerOfTwo = (globalBits && !(globalBits & (globalBits - 1)));
+    if(!powerOfTwo || globalA === globalB || globalA === 0 || globalB === 0 || globalA >= globalBits || globalB >= globalBits) {
+        const div = document.getElementById("contentHere");
+        div.innerHTML = "Bits need to be power of 2, \\( a \\neq b, a \\neq 0, b \\neq 0, a < bits, b < bits \\)";
+        const div2 = document.getElementById("rotCode");
+        div2.innerHTML = "";
+    }else {
+        globalTable = invert_table(globalA, globalB, globalBits);
+        create_table(globalTable, globalBits);
+    }
+    MathJax.typeset();
+}
+
+
+</script>
+
+</body>
+</html>
