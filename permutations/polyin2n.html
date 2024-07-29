@@ -179,7 +179,8 @@ function degree(poly) {
 }
 
 function polyprint(poly) {
-    return poly.map((x, index) => x===0n ? "" : (x+" x^{"+index+"}")).filter(x => x!="").reduce((x,y) => x+" + "+y, "0").replaceAll(" x^{0}", "").replaceAll("x^{1}", "x").replaceAll(" + 1 x", " + x").replaceAll("0 + ", "");
+    var polystr = poly.map((x, index) => x===0n ? "" : (x+" x^{"+index+"}")).filter(x => x!="").reduce((x,y) => x+" + "+y, "").replaceAll(" x^{0}", "").replaceAll("x^{1}", "x").replaceAll(" + 1 x", " + x");
+    return polystr == "" ? "0":polystr.substr(3);
 }
 
 function polyuse(a, x, n) {
