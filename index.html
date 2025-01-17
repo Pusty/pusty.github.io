@@ -221,7 +221,7 @@
                         
                         ctx.fillText(n.textContent, textWidth*0.05, h*1.3);
                         if(ctx.canvas.id in canvasHover && canvasHover[ctx.canvas.id]) 
-                            ctx.fillRect(text.width*0.05, h*1.3, textWidth, 2);
+                            ctx.fillRect(textWidth*0.05, h*1.3, textWidth, 2);
                         if(ctx.canvas.width != Math.ceil(textWidth*1.1)) { 
                             ctx.canvas.width  = Math.ceil(textWidth*1.1); 
                             ctx.canvas.height = h*1.7;
