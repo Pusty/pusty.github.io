@@ -63,7 +63,7 @@
         var canvas = document.createElement("canvas");
         canvas.width  = Math.min(Math.ceil(byteArray.length/3)*size,window.innerWidth);
         canvas.height = Math.min(Math.ceil(Math.ceil(byteArray.length/3)/f)*size,window.innerHeight);
-        var ctx = canvas.getContext("2d"); 
+        var ctx = canvas.getContext("2d", { willReadFrequently: true }); 
         function drawTriplet(a,b,c,i) {
             if (a === undefined) a = 0;
             if (b === undefined) b = 0;
@@ -197,7 +197,7 @@
        function r() {
        
 
-           var ctxArray = canvasObjects.map(c => document.getElementById(c).getContext("2d"));
+           var ctxArray = canvasObjects.map(c => document.getElementById(c).getContext("2d", { willReadFrequently: true }));
            ctxArray.forEach(ctx => ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height));
            ctxArray.forEach(ctx => {
             ctx.fillStyle = ctx.canvas.style.color==""?"#FFFFFF":ctx.canvas.style.color;
