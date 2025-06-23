@@ -254,7 +254,11 @@
                     }
                }
 
-               var imgData = ctx.getImageData(0,0,canvasWidth,canvasHeight)
+               if(ctx.canvas.toDataURL() != ctx.canvas.toDataURL()) {
+                 return;
+               }
+            
+               var imgData = ctx.getImageData(0,0,canvasWidth,canvasHeight);
                var flicker = Math.floor(Math.random()*50);
                var flickerDistance = Math.floor(Math.random()*((canvasHeight/4)+20))+canvasHeight/4;
                var offsetPos = Math.floor(Math.random()*50);
@@ -269,9 +273,7 @@
 
       }
 
-      if(document.getElementById(canvasObjects[0]).toDataURL() == document.getElementById(canvasObjects[0]).toDataURL()) {
-        setInterval(r, 200);
-      }
+      setInterval(r, 200);
   </script>
   
   <script>
