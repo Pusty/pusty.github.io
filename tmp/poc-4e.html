@@ -1,0 +1,2494 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Albert Krewinkel" />
+  <meta name="author" content="John MacFarlane" />
+  <meta name="dcterms.date" content="2020-01-10" />
+  <title>Pandoc Lua Filters</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Pandoc Lua Filters</h1>
+<p class="author">Albert Krewinkel</p>
+<p class="author">John MacFarlane</p>
+<p class="date">January 10, 2020</p>
+</header>
+<style>
+.fi { position: absolute; visibility: collapse; }
+.scramble-box { display: block; position: relative; }
+.scramble-box + .sr-text { color: transparent; position: absolute; left: 0; top: 0; width: 100%; pointer-events: none; user-select: none; }
+#p0>.fi:nth-child(1){transform:translate(9162em,310em);}
+#p0>.fi:nth-child(1)::after{content:var(--p0w0,"");}
+#p0>.fi:nth-child(2){transform:translate(1054em,500em);}
+#p0>.fi:nth-child(2)::after{content:var(--p0w1,"");}
+#p0>.fi:nth-child(3){transform:translate(6571em,280em);}
+#p0>.fi:nth-child(3)::after{content:var(--p0w2,"");}
+#p0>.fi:nth-child(4){transform:translate(6262em,490em);}
+#p0>.fi:nth-child(4)::after{content:var(--p0w3,"");}
+#p0>.fi:nth-child(5){transform:translate(4967em,530em);}
+#p0>.fi:nth-child(5)::after{content:var(--p0w4,"");}
+#p0>.fi:nth-child(6){transform:translate(1653em,360em);}
+#p0>.fi:nth-child(6)::after{content:var(--p0w5,"");}
+#p0>.fi:nth-child(7){transform:translate(8960em,80em);}
+#p0>.fi:nth-child(7)::after{content:var(--p0w6,"");}
+#p0>.fi:nth-child(8){transform:translate(8579em,520em);}
+#p0>.fi:nth-child(8)::after{content:var(--p0w7,"");}
+#p0>.fi:nth-child(9){transform:translate(2613em,410em);}
+#p0>.fi:nth-child(9)::after{content:var(--p0w8,"");}
+#p0>.fi:nth-child(10){transform:translate(2492em,510em);}
+#p0>.fi:nth-child(10)::after{content:var(--p0w9,"");}
+#p0>.fi:nth-child(11){transform:translate(3713em,320em);}
+#p0>.fi:nth-child(11)::after{content:var(--p0w10,"");}
+#p0>.fi:nth-child(12){transform:translate(3659em,270em);}
+#p0>.fi:nth-child(12)::after{content:var(--p0w11,"");}
+#p0>.fi:nth-child(13){transform:translate(1966em,420em);}
+#p0>.fi:nth-child(13)::after{content:var(--p0w12,"");}
+#p0>.fi:nth-child(14){transform:translate(9685em,380em);}
+#p0>.fi:nth-child(14)::after{content:var(--p0w13,"");}
+#p0>.fi:nth-child(15){transform:translate(4066em,40em);}
+#p0>.fi:nth-child(15)::after{content:var(--p0w14,"");}
+#p0>.fi:nth-child(16){transform:translate(1375em,170em);}
+#p0>.fi:nth-child(16)::after{content:var(--p0w15,"");}
+#p0>.fi:nth-child(17){transform:translate(1099em,130em);}
+#p0>.fi:nth-child(17)::after{content:var(--p0w16,"");}
+#p0>.fi:nth-child(18){transform:translate(3790em,100em);}
+#p0>.fi:nth-child(18)::after{content:var(--p0w17,"");}
+#p0>.fi:nth-child(19){transform:translate(5291em,430em);}
+#p0>.fi:nth-child(19)::after{content:var(--p0w18,"");}
+#p0>.fi:nth-child(20){transform:translate(5277em,120em);}
+#p0>.fi:nth-child(20)::after{content:var(--p0w19,"");}
+#p0>.fi:nth-child(21){transform:translate(4081em,140em);}
+#p0>.fi:nth-child(21)::after{content:var(--p0w20,"");}
+#p0>.fi:nth-child(22){transform:translate(5069em,350em);}
+#p0>.fi:nth-child(22)::after{content:var(--p0w21,"");}
+#p0>.fi:nth-child(23){transform:translate(684em,560em);}
+#p0>.fi:nth-child(23)::after{content:var(--p0w22,"");}
+#p0>.fi:nth-child(24){transform:translate(1767em,340em);}
+#p0>.fi:nth-child(24)::after{content:var(--p0w23,"");}
+#p0>.fi:nth-child(25){transform:translate(2533em,200em);}
+#p0>.fi:nth-child(25)::after{content:var(--p0w24,"");}
+#p0>.fi:nth-child(26){transform:translate(2907em,550em);}
+#p0>.fi:nth-child(26)::after{content:var(--p0w25,"");}
+#p0>.fi:nth-child(27){transform:translate(4558em,110em);}
+#p0>.fi:nth-child(27)::after{content:var(--p0w26,"");}
+#p0>.fi:nth-child(28){transform:translate(3973em,540em);}
+#p0>.fi:nth-child(28)::after{content:var(--p0w27,"");}
+#p0>.fi:nth-child(29){transform:translate(1544em,460em);}
+#p0>.fi:nth-child(29)::after{content:var(--p0w28,"");}
+#p0>.fi:nth-child(30){transform:translate(7353em,210em);}
+#p0>.fi:nth-child(30)::after{content:var(--p0w29,"");}
+#p0>.fi:nth-child(31){transform:translate(2000em,300em);}
+#p0>.fi:nth-child(31)::after{content:var(--p0w30,"");}
+#p0>.fi:nth-child(32){transform:translate(4023em,90em);}
+#p0>.fi:nth-child(32)::after{content:var(--p0w31,"");}
+#p0>.fi:nth-child(33){transform:translate(9026em,10em);}
+#p0>.fi:nth-child(33)::after{content:var(--p0w32,"");}
+#p0>.fi:nth-child(34){transform:translate(2752em,60em);}
+#p0>.fi:nth-child(34)::after{content:var(--p0w33,"");}
+#p0>.fi:nth-child(35){transform:translate(9807em,180em);}
+#p0>.fi:nth-child(35)::after{content:var(--p0w34,"");}
+#p0>.fi:nth-child(36){transform:translate(6331em,590em);}
+#p0>.fi:nth-child(36)::after{content:var(--p0w35,"");}
+#p0>.fi:nth-child(37){transform:translate(2050em,450em);}
+#p0>.fi:nth-child(37)::after{content:var(--p0w36,"");}
+#p0>.fi:nth-child(38){transform:translate(7070em,480em);}
+#p0>.fi:nth-child(38)::after{content:var(--p0w37,"");}
+#p0>.fi:nth-child(39){transform:translate(4133em,260em);}
+#p0>.fi:nth-child(39)::after{content:var(--p0w38,"");}
+#p0>.fi:nth-child(40){transform:translate(8639em,440em);}
+#p0>.fi:nth-child(40)::after{content:var(--p0w39,"");}
+#p0>.fi:nth-child(41){transform:translate(5341em,230em);}
+#p0>.fi:nth-child(41)::after{content:var(--p0w40,"");}
+#p0>.fi:nth-child(42){transform:translate(4618em,50em);}
+#p0>.fi:nth-child(42)::after{content:var(--p0w41,"");}
+#p0>.fi:nth-child(43){transform:translate(9672em,370em);}
+#p0>.fi:nth-child(43)::after{content:var(--p0w42,"");}
+#p0>.fi:nth-child(44){transform:translate(4707em,20em);}
+#p0>.fi:nth-child(44)::after{content:var(--p0w43,"");}
+#p0>.fi:nth-child(45){transform:translate(3085em,400em);}
+#p0>.fi:nth-child(45)::after{content:var(--p0w44,"");}
+#p0>.fi:nth-child(46){transform:translate(7137em,70em);}
+#p0>.fi:nth-child(46)::after{content:var(--p0w45,"");}
+#p0>.fi:nth-child(47){transform:translate(7987em,390em);}
+#p0>.fi:nth-child(47)::after{content:var(--p0w46,"");}
+#p0>.fi:nth-child(48){transform:translate(7415em,580em);}
+#p0>.fi:nth-child(48)::after{content:var(--p0w47,"");}
+#p0>.fi:nth-child(49){transform:translate(923em,240em);}
+#p0>.fi:nth-child(49)::after{content:var(--p0w48,"");}
+#p0>.fi:nth-child(50){transform:translate(5047em,570em);}
+#p0>.fi:nth-child(50)::after{content:var(--p0w49,"");}
+#p0>.fi:nth-child(51){transform:translate(3800em,330em);}
+#p0>.fi:nth-child(51)::after{content:var(--p0w50,"");}
+#p0>.fi:nth-child(52){transform:translate(5649em,250em);}
+#p0>.fi:nth-child(52)::after{content:var(--p0w51,"");}
+#p0>.fi:nth-child(53){transform:translate(6850em,30em);}
+#p0>.fi:nth-child(53)::after{content:var(--p0w52,"");}
+#p0>.fi:nth-child(54){transform:translate(2677em,470em);}
+#p0>.fi:nth-child(54)::after{content:var(--p0w53,"");}
+#p0>.fi:nth-child(55){transform:translate(8442em,290em);}
+#p0>.fi:nth-child(55)::after{content:var(--p0w54,"");}
+#p0>.fi:nth-child(56){transform:translate(8229em,220em);}
+#p0>.fi:nth-child(56)::after{content:var(--p0w55,"");}
+#p0>.fi:nth-child(57){transform:translate(939em,160em);}
+#p0>.fi:nth-child(57)::after{content:var(--p0w56,"");}
+#p0>.fi:nth-child(58){transform:translate(5741em,190em);}
+#p0>.fi:nth-child(58)::after{content:var(--p0w57,"");}
+#p0>.fi:nth-child(59){transform:translate(2087em,150em);}
+#p0>.fi:nth-child(59)::after{content:var(--p0w58,"");}
+#p1>.fi:nth-child(1){transform:translate(9454em,850em);}
+#p1>.fi:nth-child(1)::after{content:var(--p1w0,"");}
+#p1>.fi:nth-child(2){transform:translate(836em,590em);}
+#p1>.fi:nth-child(2)::after{content:var(--p1w1,"");}
+#p1>.fi:nth-child(3){transform:translate(3612em,390em);}
+#p1>.fi:nth-child(3)::after{content:var(--p1w2,"");}
+#p1>.fi:nth-child(4){transform:translate(5650em,100em);}
+#p1>.fi:nth-child(4)::after{content:var(--p1w3,"");}
+#p1>.fi:nth-child(5){transform:translate(8477em,870em);}
+#p1>.fi:nth-child(5)::after{content:var(--p1w4,"");}
+#p1>.fi:nth-child(6){transform:translate(7844em,960em);}
+#p1>.fi:nth-child(6)::after{content:var(--p1w5,"");}
+#p1>.fi:nth-child(7){transform:translate(2715em,880em);}
+#p1>.fi:nth-child(7)::after{content:var(--p1w6,"");}
+#p1>.fi:nth-child(8){transform:translate(9553em,650em);}
+#p1>.fi:nth-child(8)::after{content:var(--p1w7,"");}
+#p1>.fi:nth-child(9){transform:translate(3966em,30em);}
+#p1>.fi:nth-child(9)::after{content:var(--p1w8,"");}
+#p1>.fi:nth-child(10){transform:translate(2270em,760em);}
+#p1>.fi:nth-child(10)::after{content:var(--p1w9,"");}
+#p1>.fi:nth-child(11){transform:translate(5286em,820em);}
+#p1>.fi:nth-child(11)::after{content:var(--p1w10,"");}
+#p1>.fi:nth-child(12){transform:translate(7668em,110em);}
+#p1>.fi:nth-child(12)::after{content:var(--p1w11,"");}
+#p1>.fi:nth-child(13){transform:translate(8856em,250em);}
+#p1>.fi:nth-child(13)::after{content:var(--p1w12,"");}
+#p1>.fi:nth-child(14){transform:translate(5136em,20em);}
+#p1>.fi:nth-child(14)::after{content:var(--p1w13,"");}
+#p1>.fi:nth-child(15){transform:translate(7482em,660em);}
+#p1>.fi:nth-child(15)::after{content:var(--p1w14,"");}
+#p1>.fi:nth-child(16){transform:translate(9412em,700em);}
+#p1>.fi:nth-child(16)::after{content:var(--p1w15,"");}
+#p1>.fi:nth-child(17){transform:translate(129em,930em);}
+#p1>.fi:nth-child(17)::after{content:var(--p1w16,"");}
+#p1>.fi:nth-child(18){transform:translate(6185em,480em);}
+#p1>.fi:nth-child(18)::after{content:var(--p1w17,"");}
+#p1>.fi:nth-child(19){transform:translate(3159em,940em);}
+#p1>.fi:nth-child(19)::after{content:var(--p1w18,"");}
+#p1>.fi:nth-child(20){transform:translate(9790em,680em);}
+#p1>.fi:nth-child(20)::after{content:var(--p1w19,"");}
+#p1>.fi:nth-child(21){transform:translate(6135em,570em);}
+#p1>.fi:nth-child(21)::after{content:var(--p1w20,"");}
+#p1>.fi:nth-child(22){transform:translate(6289em,220em);}
+#p1>.fi:nth-child(22)::after{content:var(--p1w21,"");}
+#p1>.fi:nth-child(23){transform:translate(3038em,10em);}
+#p1>.fi:nth-child(23)::after{content:var(--p1w22,"");}
+#p1>.fi:nth-child(24){transform:translate(7886em,950em);}
+#p1>.fi:nth-child(24)::after{content:var(--p1w23,"");}
+#p1>.fi:nth-child(25){transform:translate(8652em,730em);}
+#p1>.fi:nth-child(25)::after{content:var(--p1w24,"");}
+#p1>.fi:nth-child(26){transform:translate(2771em,770em);}
+#p1>.fi:nth-child(26)::after{content:var(--p1w25,"");}
+#p1>.fi:nth-child(27){transform:translate(9429em,630em);}
+#p1>.fi:nth-child(27)::after{content:var(--p1w26,"");}
+#p1>.fi:nth-child(28){transform:translate(4902em,810em);}
+#p1>.fi:nth-child(28)::after{content:var(--p1w27,"");}
+#p1>.fi:nth-child(29){transform:translate(8470em,510em);}
+#p1>.fi:nth-child(29)::after{content:var(--p1w28,"");}
+#p1>.fi:nth-child(30){transform:translate(9098em,140em);}
+#p1>.fi:nth-child(30)::after{content:var(--p1w29,"");}
+#p1>.fi:nth-child(31){transform:translate(1060em,200em);}
+#p1>.fi:nth-child(31)::after{content:var(--p1w30,"");}
+#p1>.fi:nth-child(32){transform:translate(9025em,440em);}
+#p1>.fi:nth-child(32)::after{content:var(--p1w31,"");}
+#p1>.fi:nth-child(33){transform:translate(8006em,280em);}
+#p1>.fi:nth-child(33)::after{content:var(--p1w32,"");}
+#p1>.fi:nth-child(34){transform:translate(7052em,560em);}
+#p1>.fi:nth-child(34)::after{content:var(--p1w33,"");}
+#p1>.fi:nth-child(35){transform:translate(6401em,330em);}
+#p1>.fi:nth-child(35)::after{content:var(--p1w34,"");}
+#p1>.fi:nth-child(36){transform:translate(1003em,180em);}
+#p1>.fi:nth-child(36)::after{content:var(--p1w35,"");}
+#p1>.fi:nth-child(37){transform:translate(3899em,450em);}
+#p1>.fi:nth-child(37)::after{content:var(--p1w36,"");}
+#p1>.fi:nth-child(38){transform:translate(6726em,500em);}
+#p1>.fi:nth-child(38)::after{content:var(--p1w37,"");}
+#p1>.fi:nth-child(39){transform:translate(496em,830em);}
+#p1>.fi:nth-child(39)::after{content:var(--p1w38,"");}
+#p1>.fi:nth-child(40){transform:translate(9773em,710em);}
+#p1>.fi:nth-child(40)::after{content:var(--p1w39,"");}
+#p1>.fi:nth-child(41){transform:translate(2202em,320em);}
+#p1>.fi:nth-child(41)::after{content:var(--p1w40,"");}
+#p1>.fi:nth-child(42){transform:translate(1594em,550em);}
+#p1>.fi:nth-child(42)::after{content:var(--p1w41,"");}
+#p1>.fi:nth-child(43){transform:translate(8932em,240em);}
+#p1>.fi:nth-child(43)::after{content:var(--p1w42,"");}
+#p1>.fi:nth-child(44){transform:translate(5215em,370em);}
+#p1>.fi:nth-child(44)::after{content:var(--p1w43,"");}
+#p1>.fi:nth-child(45){transform:translate(4472em,540em);}
+#p1>.fi:nth-child(45)::after{content:var(--p1w44,"");}
+#p1>.fi:nth-child(46){transform:translate(8387em,70em);}
+#p1>.fi:nth-child(46)::after{content:var(--p1w45,"");}
+#p1>.fi:nth-child(47){transform:translate(3753em,340em);}
+#p1>.fi:nth-child(47)::after{content:var(--p1w46,"");}
+#p1>.fi:nth-child(48){transform:translate(8493em,640em);}
+#p1>.fi:nth-child(48)::after{content:var(--p1w47,"");}
+#p1>.fi:nth-child(49){transform:translate(7134em,460em);}
+#p1>.fi:nth-child(49)::after{content:var(--p1w48,"");}
+#p1>.fi:nth-child(50){transform:translate(9481em,790em);}
+#p1>.fi:nth-child(50)::after{content:var(--p1w49,"");}
+#p1>.fi:nth-child(51){transform:translate(6137em,860em);}
+#p1>.fi:nth-child(51)::after{content:var(--p1w50,"");}
+#p1>.fi:nth-child(52){transform:translate(437em,900em);}
+#p1>.fi:nth-child(52)::after{content:var(--p1w51,"");}
+#p1>.fi:nth-child(53){transform:translate(3597em,720em);}
+#p1>.fi:nth-child(53)::after{content:var(--p1w52,"");}
+#p1>.fi:nth-child(54){transform:translate(9276em,50em);}
+#p1>.fi:nth-child(54)::after{content:var(--p1w53,"");}
+#p1>.fi:nth-child(55){transform:translate(1990em,150em);}
+#p1>.fi:nth-child(55)::after{content:var(--p1w54,"");}
+#p1>.fi:nth-child(56){transform:translate(9068em,410em);}
+#p1>.fi:nth-child(56)::after{content:var(--p1w55,"");}
+#p1>.fi:nth-child(57){transform:translate(6173em,520em);}
+#p1>.fi:nth-child(57)::after{content:var(--p1w56,"");}
+#p1>.fi:nth-child(58){transform:translate(8052em,670em);}
+#p1>.fi:nth-child(58)::after{content:var(--p1w57,"");}
+#p1>.fi:nth-child(59){transform:translate(4308em,40em);}
+#p1>.fi:nth-child(59)::after{content:var(--p1w58,"");}
+#p1>.fi:nth-child(60){transform:translate(7286em,800em);}
+#p1>.fi:nth-child(60)::after{content:var(--p1w59,"");}
+#p1>.fi:nth-child(61){transform:translate(4336em,60em);}
+#p1>.fi:nth-child(61)::after{content:var(--p1w60,"");}
+#p1>.fi:nth-child(62){transform:translate(3628em,270em);}
+#p1>.fi:nth-child(62)::after{content:var(--p1w61,"");}
+#p1>.fi:nth-child(63){transform:translate(1045em,740em);}
+#p1>.fi:nth-child(63)::after{content:var(--p1w62,"");}
+#p1>.fi:nth-child(64){transform:translate(7933em,400em);}
+#p1>.fi:nth-child(64)::after{content:var(--p1w63,"");}
+#p1>.fi:nth-child(65){transform:translate(4493em,230em);}
+#p1>.fi:nth-child(65)::after{content:var(--p1w64,"");}
+#p1>.fi:nth-child(66){transform:translate(5051em,300em);}
+#p1>.fi:nth-child(66)::after{content:var(--p1w65,"");}
+#p1>.fi:nth-child(67){transform:translate(4072em,360em);}
+#p1>.fi:nth-child(67)::after{content:var(--p1w66,"");}
+#p1>.fi:nth-child(68){transform:translate(7498em,890em);}
+#p1>.fi:nth-child(68)::after{content:var(--p1w67,"");}
+#p1>.fi:nth-child(69){transform:translate(6752em,260em);}
+#p1>.fi:nth-child(69)::after{content:var(--p1w68,"");}
+#p1>.fi:nth-child(70){transform:translate(8453em,80em);}
+#p1>.fi:nth-child(70)::after{content:var(--p1w69,"");}
+#p1>.fi:nth-child(71){transform:translate(5530em,690em);}
+#p1>.fi:nth-child(71)::after{content:var(--p1w70,"");}
+#p1>.fi:nth-child(72){transform:translate(8062em,290em);}
+#p1>.fi:nth-child(72)::after{content:var(--p1w71,"");}
+#p1>.fi:nth-child(73){transform:translate(1845em,580em);}
+#p1>.fi:nth-child(73)::after{content:var(--p1w72,"");}
+#p1>.fi:nth-child(74){transform:translate(3984em,490em);}
+#p1>.fi:nth-child(74)::after{content:var(--p1w73,"");}
+#p1>.fi:nth-child(75){transform:translate(8662em,310em);}
+#p1>.fi:nth-child(75)::after{content:var(--p1w74,"");}
+#p1>.fi:nth-child(76){transform:translate(9241em,120em);}
+#p1>.fi:nth-child(76)::after{content:var(--p1w75,"");}
+#p1>.fi:nth-child(77){transform:translate(4794em,910em);}
+#p1>.fi:nth-child(77)::after{content:var(--p1w76,"");}
+#p1>.fi:nth-child(78){transform:translate(3309em,190em);}
+#p1>.fi:nth-child(78)::after{content:var(--p1w77,"");}
+#p1>.fi:nth-child(79){transform:translate(5260em,160em);}
+#p1>.fi:nth-child(79)::after{content:var(--p1w78,"");}
+#p1>.fi:nth-child(80){transform:translate(508em,210em);}
+#p1>.fi:nth-child(80)::after{content:var(--p1w79,"");}
+#p1>.fi:nth-child(81){transform:translate(1870em,380em);}
+#p1>.fi:nth-child(81)::after{content:var(--p1w80,"");}
+#p1>.fi:nth-child(82){transform:translate(9653em,600em);}
+#p1>.fi:nth-child(82)::after{content:var(--p1w81,"");}
+#p1>.fi:nth-child(83){transform:translate(7223em,840em);}
+#p1>.fi:nth-child(83)::after{content:var(--p1w82,"");}
+#p1>.fi:nth-child(84){transform:translate(9318em,430em);}
+#p1>.fi:nth-child(84)::after{content:var(--p1w83,"");}
+#p1>.fi:nth-child(85){transform:translate(8348em,420em);}
+#p1>.fi:nth-child(85)::after{content:var(--p1w84,"");}
+#p1>.fi:nth-child(86){transform:translate(6319em,970em);}
+#p1>.fi:nth-child(86)::after{content:var(--p1w85,"");}
+#p1>.fi:nth-child(87){transform:translate(4443em,350em);}
+#p1>.fi:nth-child(87)::after{content:var(--p1w86,"");}
+#p1>.fi:nth-child(88){transform:translate(7763em,170em);}
+#p1>.fi:nth-child(88)::after{content:var(--p1w87,"");}
+#p1>.fi:nth-child(89){transform:translate(7459em,530em);}
+#p1>.fi:nth-child(89)::after{content:var(--p1w88,"");}
+#p1>.fi:nth-child(90){transform:translate(609em,750em);}
+#p1>.fi:nth-child(90)::after{content:var(--p1w89,"");}
+#p1>.fi:nth-child(91){transform:translate(1296em,470em);}
+#p1>.fi:nth-child(91)::after{content:var(--p1w90,"");}
+#p1>.fi:nth-child(92){transform:translate(252em,780em);}
+#p1>.fi:nth-child(92)::after{content:var(--p1w91,"");}
+#p1>.fi:nth-child(93){transform:translate(2636em,920em);}
+#p1>.fi:nth-child(93)::after{content:var(--p1w92,"");}
+#p1>.fi:nth-child(94){transform:translate(1153em,620em);}
+#p1>.fi:nth-child(94)::after{content:var(--p1w93,"");}
+#p1>.fi:nth-child(95){transform:translate(3757em,610em);}
+#p1>.fi:nth-child(95)::after{content:var(--p1w94,"");}
+#p1>.fi:nth-child(96){transform:translate(9338em,90em);}
+#p1>.fi:nth-child(96)::after{content:var(--p1w95,"");}
+#p1>.fi:nth-child(97){transform:translate(2677em,130em);}
+#p1>.fi:nth-child(97)::after{content:var(--p1w96,"");}
+#p2>.fi:nth-child(1){transform:translate(3368em,110em);}
+#p2>.fi:nth-child(1)::after{content:var(--p2w0,"");}
+#p2>.fi:nth-child(2){transform:translate(4558em,530em);}
+#p2>.fi:nth-child(2)::after{content:var(--p2w1,"");}
+#p2>.fi:nth-child(3){transform:translate(479em,280em);}
+#p2>.fi:nth-child(3)::after{content:var(--p2w2,"");}
+#p2>.fi:nth-child(4){transform:translate(4883em,400em);}
+#p2>.fi:nth-child(4)::after{content:var(--p2w3,"");}
+#p2>.fi:nth-child(5){transform:translate(2842em,260em);}
+#p2>.fi:nth-child(5)::after{content:var(--p2w4,"");}
+#p2>.fi:nth-child(6){transform:translate(135em,550em);}
+#p2>.fi:nth-child(6)::after{content:var(--p2w5,"");}
+#p2>.fi:nth-child(7){transform:translate(8319em,200em);}
+#p2>.fi:nth-child(7)::after{content:var(--p2w6,"");}
+#p2>.fi:nth-child(8){transform:translate(8296em,160em);}
+#p2>.fi:nth-child(8)::after{content:var(--p2w7,"");}
+#p2>.fi:nth-child(9){transform:translate(5926em,210em);}
+#p2>.fi:nth-child(9)::after{content:var(--p2w8,"");}
+#p2>.fi:nth-child(10){transform:translate(3079em,570em);}
+#p2>.fi:nth-child(10)::after{content:var(--p2w9,"");}
+#p2>.fi:nth-child(11){transform:translate(4678em,100em);}
+#p2>.fi:nth-child(11)::after{content:var(--p2w10,"");}
+#p2>.fi:nth-child(12){transform:translate(3636em,30em);}
+#p2>.fi:nth-child(12)::after{content:var(--p2w11,"");}
+#p2>.fi:nth-child(13){transform:translate(5406em,130em);}
+#p2>.fi:nth-child(13)::after{content:var(--p2w12,"");}
+#p2>.fi:nth-child(14){transform:translate(5483em,170em);}
+#p2>.fi:nth-child(14)::after{content:var(--p2w13,"");}
+#p2>.fi:nth-child(15){transform:translate(8774em,580em);}
+#p2>.fi:nth-child(15)::after{content:var(--p2w14,"");}
+#p2>.fi:nth-child(16){transform:translate(2319em,270em);}
+#p2>.fi:nth-child(16)::after{content:var(--p2w15,"");}
+#p2>.fi:nth-child(17){transform:translate(1691em,120em);}
+#p2>.fi:nth-child(17)::after{content:var(--p2w16,"");}
+#p2>.fi:nth-child(18){transform:translate(1390em,440em);}
+#p2>.fi:nth-child(18)::after{content:var(--p2w17,"");}
+#p2>.fi:nth-child(19){transform:translate(4801em,300em);}
+#p2>.fi:nth-child(19)::after{content:var(--p2w18,"");}
+#p2>.fi:nth-child(20){transform:translate(4343em,10em);}
+#p2>.fi:nth-child(20)::after{content:var(--p2w19,"");}
+#p2>.fi:nth-child(21){transform:translate(2342em,560em);}
+#p2>.fi:nth-child(21)::after{content:var(--p2w20,"");}
+#p2>.fi:nth-child(22){transform:translate(7109em,220em);}
+#p2>.fi:nth-child(22)::after{content:var(--p2w21,"");}
+#p2>.fi:nth-child(23){transform:translate(2945em,590em);}
+#p2>.fi:nth-child(23)::after{content:var(--p2w22,"");}
+#p2>.fi:nth-child(24){transform:translate(8585em,330em);}
+#p2>.fi:nth-child(24)::after{content:var(--p2w23,"");}
+#p2>.fi:nth-child(25){transform:translate(7192em,180em);}
+#p2>.fi:nth-child(25)::after{content:var(--p2w24,"");}
+#p2>.fi:nth-child(26){transform:translate(7553em,390em);}
+#p2>.fi:nth-child(26)::after{content:var(--p2w25,"");}
+#p2>.fi:nth-child(27){transform:translate(4582em,20em);}
+#p2>.fi:nth-child(27)::after{content:var(--p2w26,"");}
+#p2>.fi:nth-child(28){transform:translate(9915em,500em);}
+#p2>.fi:nth-child(28)::after{content:var(--p2w27,"");}
+#p2>.fi:nth-child(29){transform:translate(8299em,50em);}
+#p2>.fi:nth-child(29)::after{content:var(--p2w28,"");}
+#p2>.fi:nth-child(30){transform:translate(6970em,240em);}
+#p2>.fi:nth-child(30)::after{content:var(--p2w29,"");}
+#p2>.fi:nth-child(31){transform:translate(9924em,190em);}
+#p2>.fi:nth-child(31)::after{content:var(--p2w30,"");}
+#p2>.fi:nth-child(32){transform:translate(5547em,510em);}
+#p2>.fi:nth-child(32)::after{content:var(--p2w31,"");}
+#p2>.fi:nth-child(33){transform:translate(541em,450em);}
+#p2>.fi:nth-child(33)::after{content:var(--p2w32,"");}
+#p2>.fi:nth-child(34){transform:translate(145em,380em);}
+#p2>.fi:nth-child(34)::after{content:var(--p2w33,"");}
+#p2>.fi:nth-child(35){transform:translate(1297em,360em);}
+#p2>.fi:nth-child(35)::after{content:var(--p2w34,"");}
+#p2>.fi:nth-child(36){transform:translate(4391em,150em);}
+#p2>.fi:nth-child(36)::after{content:var(--p2w35,"");}
+#p2>.fi:nth-child(37){transform:translate(6693em,60em);}
+#p2>.fi:nth-child(37)::after{content:var(--p2w36,"");}
+#p2>.fi:nth-child(38){transform:translate(7411em,480em);}
+#p2>.fi:nth-child(38)::after{content:var(--p2w37,"");}
+#p2>.fi:nth-child(39){transform:translate(1044em,410em);}
+#p2>.fi:nth-child(39)::after{content:var(--p2w38,"");}
+#p2>.fi:nth-child(40){transform:translate(959em,40em);}
+#p2>.fi:nth-child(40)::after{content:var(--p2w39,"");}
+#p2>.fi:nth-child(41){transform:translate(5342em,310em);}
+#p2>.fi:nth-child(41)::after{content:var(--p2w40,"");}
+#p2>.fi:nth-child(42){transform:translate(7846em,350em);}
+#p2>.fi:nth-child(42)::after{content:var(--p2w41,"");}
+#p2>.fi:nth-child(43){transform:translate(7638em,340em);}
+#p2>.fi:nth-child(43)::after{content:var(--p2w42,"");}
+#p2>.fi:nth-child(44){transform:translate(8128em,370em);}
+#p2>.fi:nth-child(44)::after{content:var(--p2w43,"");}
+#p2>.fi:nth-child(45){transform:translate(528em,70em);}
+#p2>.fi:nth-child(45)::after{content:var(--p2w44,"");}
+#p2>.fi:nth-child(46){transform:translate(3171em,90em);}
+#p2>.fi:nth-child(46)::after{content:var(--p2w45,"");}
+#p2>.fi:nth-child(47){transform:translate(1880em,520em);}
+#p2>.fi:nth-child(47)::after{content:var(--p2w46,"");}
+#p2>.fi:nth-child(48){transform:translate(9756em,540em);}
+#p2>.fi:nth-child(48)::after{content:var(--p2w47,"");}
+#p2>.fi:nth-child(49){transform:translate(5216em,420em);}
+#p2>.fi:nth-child(49)::after{content:var(--p2w48,"");}
+#p2>.fi:nth-child(50){transform:translate(9680em,230em);}
+#p2>.fi:nth-child(50)::after{content:var(--p2w49,"");}
+#p2>.fi:nth-child(51){transform:translate(1072em,460em);}
+#p2>.fi:nth-child(51)::after{content:var(--p2w50,"");}
+#p2>.fi:nth-child(52){transform:translate(5550em,320em);}
+#p2>.fi:nth-child(52)::after{content:var(--p2w51,"");}
+#p2>.fi:nth-child(53){transform:translate(1541em,250em);}
+#p2>.fi:nth-child(53)::after{content:var(--p2w52,"");}
+#p2>.fi:nth-child(54){transform:translate(6638em,290em);}
+#p2>.fi:nth-child(54)::after{content:var(--p2w53,"");}
+#p2>.fi:nth-child(55){transform:translate(4952em,490em);}
+#p2>.fi:nth-child(55)::after{content:var(--p2w54,"");}
+#p2>.fi:nth-child(56){transform:translate(3317em,470em);}
+#p2>.fi:nth-child(56)::after{content:var(--p2w55,"");}
+#p2>.fi:nth-child(57){transform:translate(8217em,430em);}
+#p2>.fi:nth-child(57)::after{content:var(--p2w56,"");}
+#p2>.fi:nth-child(58){transform:translate(4065em,140em);}
+#p2>.fi:nth-child(58)::after{content:var(--p2w57,"");}
+#p2>.fi:nth-child(59){transform:translate(8616em,80em);}
+#p2>.fi:nth-child(59)::after{content:var(--p2w58,"");}
+#p3>.fi:nth-child(1){transform:translate(4639em,20em);}
+#p3>.fi:nth-child(1)::after{content:var(--p3w0,"");}
+#p3>.fi:nth-child(2){transform:translate(4635em,60em);}
+#p3>.fi:nth-child(2)::after{content:var(--p3w1,"");}
+#p3>.fi:nth-child(3){transform:translate(6722em,30em);}
+#p3>.fi:nth-child(3)::after{content:var(--p3w2,"");}
+#p3>.fi:nth-child(4){transform:translate(4324em,10em);}
+#p3>.fi:nth-child(4)::after{content:var(--p3w3,"");}
+#p3>.fi:nth-child(5){transform:translate(9877em,140em);}
+#p3>.fi:nth-child(5)::after{content:var(--p3w4,"");}
+#p3>.fi:nth-child(6){transform:translate(2489em,120em);}
+#p3>.fi:nth-child(6)::after{content:var(--p3w5,"");}
+#p3>.fi:nth-child(7){transform:translate(2635em,50em);}
+#p3>.fi:nth-child(7)::after{content:var(--p3w6,"");}
+#p3>.fi:nth-child(8){transform:translate(5277em,150em);}
+#p3>.fi:nth-child(8)::after{content:var(--p3w7,"");}
+#p3>.fi:nth-child(9){transform:translate(2272em,80em);}
+#p3>.fi:nth-child(9)::after{content:var(--p3w8,"");}
+#p3>.fi:nth-child(10){transform:translate(4318em,90em);}
+#p3>.fi:nth-child(10)::after{content:var(--p3w9,"");}
+#p3>.fi:nth-child(11){transform:translate(2913em,70em);}
+#p3>.fi:nth-child(11)::after{content:var(--p3w10,"");}
+#p3>.fi:nth-child(12){transform:translate(3207em,100em);}
+#p3>.fi:nth-child(12)::after{content:var(--p3w11,"");}
+#p3>.fi:nth-child(13){transform:translate(5808em,130em);}
+#p3>.fi:nth-child(13)::after{content:var(--p3w12,"");}
+#p3>.fi:nth-child(14){transform:translate(6871em,40em);}
+#p3>.fi:nth-child(14)::after{content:var(--p3w13,"");}
+#p3>.fi:nth-child(15){transform:translate(9045em,110em);}
+#p3>.fi:nth-child(15)::after{content:var(--p3w14,"");}
+#p4>.fi:nth-child(1){transform:translate(6632em,20em);}
+#p4>.fi:nth-child(1)::after{content:var(--p4w0,"");}
+#p4>.fi:nth-child(2){transform:translate(7289em,10em);}
+#p4>.fi:nth-child(2)::after{content:var(--p4w1,"");}
+#p5>.fi:nth-child(1){transform:translate(4959em,140em);}
+#p5>.fi:nth-child(1)::after{content:var(--p5w0,"");}
+#p5>.fi:nth-child(2){transform:translate(2122em,40em);}
+#p5>.fi:nth-child(2)::after{content:var(--p5w1,"");}
+#p5>.fi:nth-child(3){transform:translate(6066em,20em);}
+#p5>.fi:nth-child(3)::after{content:var(--p5w2,"");}
+#p5>.fi:nth-child(4){transform:translate(1019em,10em);}
+#p5>.fi:nth-child(4)::after{content:var(--p5w3,"");}
+#p5>.fi:nth-child(5){transform:translate(9272em,210em);}
+#p5>.fi:nth-child(5)::after{content:var(--p5w4,"");}
+#p5>.fi:nth-child(6){transform:translate(5532em,120em);}
+#p5>.fi:nth-child(6)::after{content:var(--p5w5,"");}
+#p5>.fi:nth-child(7){transform:translate(2543em,100em);}
+#p5>.fi:nth-child(7)::after{content:var(--p5w6,"");}
+#p5>.fi:nth-child(8){transform:translate(8829em,80em);}
+#p5>.fi:nth-child(8)::after{content:var(--p5w7,"");}
+#p5>.fi:nth-child(9){transform:translate(7200em,90em);}
+#p5>.fi:nth-child(9)::after{content:var(--p5w8,"");}
+#p5>.fi:nth-child(10){transform:translate(4307em,70em);}
+#p5>.fi:nth-child(10)::after{content:var(--p5w9,"");}
+#p5>.fi:nth-child(11){transform:translate(7977em,110em);}
+#p5>.fi:nth-child(11)::after{content:var(--p5w10,"");}
+#p5>.fi:nth-child(12){transform:translate(1176em,180em);}
+#p5>.fi:nth-child(12)::after{content:var(--p5w11,"");}
+#p5>.fi:nth-child(13){transform:translate(8693em,50em);}
+#p5>.fi:nth-child(13)::after{content:var(--p5w12,"");}
+#p5>.fi:nth-child(14){transform:translate(6832em,150em);}
+#p5>.fi:nth-child(14)::after{content:var(--p5w13,"");}
+#p5>.fi:nth-child(15){transform:translate(8001em,200em);}
+#p5>.fi:nth-child(15)::after{content:var(--p5w14,"");}
+#p5>.fi:nth-child(16){transform:translate(2632em,60em);}
+#p5>.fi:nth-child(16)::after{content:var(--p5w15,"");}
+#p5>.fi:nth-child(17){transform:translate(1180em,130em);}
+#p5>.fi:nth-child(17)::after{content:var(--p5w16,"");}
+#p5>.fi:nth-child(18){transform:translate(832em,190em);}
+#p5>.fi:nth-child(18)::after{content:var(--p5w17,"");}
+#p5>.fi:nth-child(19){transform:translate(8859em,220em);}
+#p5>.fi:nth-child(19)::after{content:var(--p5w18,"");}
+#p5>.fi:nth-child(20){transform:translate(9599em,160em);}
+#p5>.fi:nth-child(20)::after{content:var(--p5w19,"");}
+#p5>.fi:nth-child(21){transform:translate(4893em,30em);}
+#p5>.fi:nth-child(21)::after{content:var(--p5w20,"");}
+#p5>.fi:nth-child(22){transform:translate(1035em,170em);}
+#p5>.fi:nth-child(22)::after{content:var(--p5w21,"");}
+#p6>.fi:nth-child(1){transform:translate(8743em,120em);}
+#p6>.fi:nth-child(1)::after{content:var(--p6w0,"");}
+#p6>.fi:nth-child(2){transform:translate(3996em,80em);}
+#p6>.fi:nth-child(2)::after{content:var(--p6w1,"");}
+#p6>.fi:nth-child(3){transform:translate(9929em,140em);}
+#p6>.fi:nth-child(3)::after{content:var(--p6w2,"");}
+#p6>.fi:nth-child(4){transform:translate(6911em,100em);}
+#p6>.fi:nth-child(4)::after{content:var(--p6w3,"");}
+#p6>.fi:nth-child(5){transform:translate(4715em,20em);}
+#p6>.fi:nth-child(5)::after{content:var(--p6w4,"");}
+#p6>.fi:nth-child(6){transform:translate(6169em,90em);}
+#p6>.fi:nth-child(6)::after{content:var(--p6w5,"");}
+#p6>.fi:nth-child(7){transform:translate(8344em,130em);}
+#p6>.fi:nth-child(7)::after{content:var(--p6w6,"");}
+#p6>.fi:nth-child(8){transform:translate(7090em,10em);}
+#p6>.fi:nth-child(8)::after{content:var(--p6w7,"");}
+#p6>.fi:nth-child(9){transform:translate(6004em,50em);}
+#p6>.fi:nth-child(9)::after{content:var(--p6w8,"");}
+#p6>.fi:nth-child(10){transform:translate(5557em,150em);}
+#p6>.fi:nth-child(10)::after{content:var(--p6w9,"");}
+#p6>.fi:nth-child(11){transform:translate(236em,40em);}
+#p6>.fi:nth-child(11)::after{content:var(--p6w10,"");}
+#p6>.fi:nth-child(12){transform:translate(485em,30em);}
+#p6>.fi:nth-child(12)::after{content:var(--p6w11,"");}
+#p6>.fi:nth-child(13){transform:translate(9301em,70em);}
+#p6>.fi:nth-child(13)::after{content:var(--p6w12,"");}
+#p6>.fi:nth-child(14){transform:translate(2297em,60em);}
+#p6>.fi:nth-child(14)::after{content:var(--p6w13,"");}
+#p6>.fi:nth-child(15){transform:translate(4064em,110em);}
+#p6>.fi:nth-child(15)::after{content:var(--p6w14,"");}
+#p7>.fi:nth-child(1){transform:translate(6696em,90em);}
+#p7>.fi:nth-child(1)::after{content:var(--p7w0,"");}
+#p7>.fi:nth-child(2){transform:translate(9918em,190em);}
+#p7>.fi:nth-child(2)::after{content:var(--p7w1,"");}
+#p7>.fi:nth-child(3){transform:translate(9793em,240em);}
+#p7>.fi:nth-child(3)::after{content:var(--p7w2,"");}
+#p7>.fi:nth-child(4){transform:translate(5993em,10em);}
+#p7>.fi:nth-child(4)::after{content:var(--p7w3,"");}
+#p7>.fi:nth-child(5){transform:translate(240em,50em);}
+#p7>.fi:nth-child(5)::after{content:var(--p7w4,"");}
+#p7>.fi:nth-child(6){transform:translate(3698em,180em);}
+#p7>.fi:nth-child(6)::after{content:var(--p7w5,"");}
+#p7>.fi:nth-child(7){transform:translate(4714em,160em);}
+#p7>.fi:nth-child(7)::after{content:var(--p7w6,"");}
+#p7>.fi:nth-child(8){transform:translate(1271em,250em);}
+#p7>.fi:nth-child(8)::after{content:var(--p7w7,"");}
+#p7>.fi:nth-child(9){transform:translate(5490em,40em);}
+#p7>.fi:nth-child(9)::after{content:var(--p7w8,"");}
+#p7>.fi:nth-child(10){transform:translate(8244em,120em);}
+#p7>.fi:nth-child(10)::after{content:var(--p7w9,"");}
+#p7>.fi:nth-child(11){transform:translate(5663em,70em);}
+#p7>.fi:nth-child(11)::after{content:var(--p7w10,"");}
+#p7>.fi:nth-child(12){transform:translate(1709em,20em);}
+#p7>.fi:nth-child(12)::after{content:var(--p7w11,"");}
+#p7>.fi:nth-child(13){transform:translate(4470em,30em);}
+#p7>.fi:nth-child(13)::after{content:var(--p7w12,"");}
+#p7>.fi:nth-child(14){transform:translate(3146em,140em);}
+#p7>.fi:nth-child(14)::after{content:var(--p7w13,"");}
+#p7>.fi:nth-child(15){transform:translate(6498em,110em);}
+#p7>.fi:nth-child(15)::after{content:var(--p7w14,"");}
+#p7>.fi:nth-child(16){transform:translate(9129em,170em);}
+#p7>.fi:nth-child(16)::after{content:var(--p7w15,"");}
+#p7>.fi:nth-child(17){transform:translate(6922em,230em);}
+#p7>.fi:nth-child(17)::after{content:var(--p7w16,"");}
+#p7>.fi:nth-child(18){transform:translate(7802em,100em);}
+#p7>.fi:nth-child(18)::after{content:var(--p7w17,"");}
+#p7>.fi:nth-child(19){transform:translate(4717em,220em);}
+#p7>.fi:nth-child(19)::after{content:var(--p7w18,"");}
+#p7>.fi:nth-child(20){transform:translate(5093em,80em);}
+#p7>.fi:nth-child(20)::after{content:var(--p7w19,"");}
+#p7>.fi:nth-child(21){transform:translate(204em,210em);}
+#p7>.fi:nth-child(21)::after{content:var(--p7w20,"");}
+#p7>.fi:nth-child(22){transform:translate(6307em,270em);}
+#p7>.fi:nth-child(22)::after{content:var(--p7w21,"");}
+#p7>.fi:nth-child(23){transform:translate(9690em,60em);}
+#p7>.fi:nth-child(23)::after{content:var(--p7w22,"");}
+#p7>.fi:nth-child(24){transform:translate(7377em,280em);}
+#p7>.fi:nth-child(24)::after{content:var(--p7w23,"");}
+#p7>.fi:nth-child(25){transform:translate(5723em,130em);}
+#p7>.fi:nth-child(25)::after{content:var(--p7w24,"");}
+#p7>.fi:nth-child(26){transform:translate(3150em,260em);}
+#p7>.fi:nth-child(26)::after{content:var(--p7w25,"");}
+#p7>.fi:nth-child(27){transform:translate(7933em,150em);}
+#p7>.fi:nth-child(27)::after{content:var(--p7w26,"");}
+#p7>.fi:nth-child(28){transform:translate(3012em,200em);}
+#p7>.fi:nth-child(28)::after{content:var(--p7w27,"");}
+#p8>.fi:nth-child(1){transform:translate(8825em,10em);}
+#p8>.fi:nth-child(1)::after{content:var(--p8w0,"");}
+#p8>.fi:nth-child(2){transform:translate(9788em,30em);}
+#p8>.fi:nth-child(2)::after{content:var(--p8w1,"");}
+#p8>.fi:nth-child(3){transform:translate(4810em,90em);}
+#p8>.fi:nth-child(3)::after{content:var(--p8w2,"");}
+#p8>.fi:nth-child(4){transform:translate(713em,50em);}
+#p8>.fi:nth-child(4)::after{content:var(--p8w3,"");}
+#p8>.fi:nth-child(5){transform:translate(174em,160em);}
+#p8>.fi:nth-child(5)::after{content:var(--p8w4,"");}
+#p8>.fi:nth-child(6){transform:translate(2897em,60em);}
+#p8>.fi:nth-child(6)::after{content:var(--p8w5,"");}
+#p8>.fi:nth-child(7){transform:translate(5889em,180em);}
+#p8>.fi:nth-child(7)::after{content:var(--p8w6,"");}
+#p8>.fi:nth-child(8){transform:translate(1051em,140em);}
+#p8>.fi:nth-child(8)::after{content:var(--p8w7,"");}
+#p8>.fi:nth-child(9){transform:translate(8509em,130em);}
+#p8>.fi:nth-child(9)::after{content:var(--p8w8,"");}
+#p8>.fi:nth-child(10){transform:translate(990em,70em);}
+#p8>.fi:nth-child(10)::after{content:var(--p8w9,"");}
+#p8>.fi:nth-child(11){transform:translate(4857em,110em);}
+#p8>.fi:nth-child(11)::after{content:var(--p8w10,"");}
+#p8>.fi:nth-child(12){transform:translate(7535em,120em);}
+#p8>.fi:nth-child(12)::after{content:var(--p8w11,"");}
+#p8>.fi:nth-child(13){transform:translate(5844em,170em);}
+#p8>.fi:nth-child(13)::after{content:var(--p8w12,"");}
+#p8>.fi:nth-child(14){transform:translate(6717em,80em);}
+#p8>.fi:nth-child(14)::after{content:var(--p8w13,"");}
+#p8>.fi:nth-child(15){transform:translate(2107em,40em);}
+#p8>.fi:nth-child(15)::after{content:var(--p8w14,"");}
+#p8>.fi:nth-child(16){transform:translate(232em,20em);}
+#p8>.fi:nth-child(16)::after{content:var(--p8w15,"");}
+#p8>.fi:nth-child(17){transform:translate(6086em,200em);}
+#p8>.fi:nth-child(17)::after{content:var(--p8w16,"");}
+#p8>.fi:nth-child(18){transform:translate(2586em,150em);}
+#p8>.fi:nth-child(18)::after{content:var(--p8w17,"");}
+#p8>.fi:nth-child(19){transform:translate(3411em,190em);}
+#p8>.fi:nth-child(19)::after{content:var(--p8w18,"");}
+#p8>.fi:nth-child(20){transform:translate(251em,100em);}
+#p8>.fi:nth-child(20)::after{content:var(--p8w19,"");}
+#p8>.fi:nth-child(21){transform:translate(3093em,210em);}
+#p8>.fi:nth-child(21)::after{content:var(--p8w20,"");}
+#p9>.fi:nth-child(1){transform:translate(9290em,10em);}
+#p9>.fi:nth-child(1)::after{content:var(--p9w0,"");}
+#p9>.fi:nth-child(2){transform:translate(5300em,40em);}
+#p9>.fi:nth-child(2)::after{content:var(--p9w1,"");}
+#p9>.fi:nth-child(3){transform:translate(7520em,170em);}
+#p9>.fi:nth-child(3)::after{content:var(--p9w2,"");}
+#p9>.fi:nth-child(4){transform:translate(1221em,30em);}
+#p9>.fi:nth-child(4)::after{content:var(--p9w3,"");}
+#p9>.fi:nth-child(5){transform:translate(661em,100em);}
+#p9>.fi:nth-child(5)::after{content:var(--p9w4,"");}
+#p9>.fi:nth-child(6){transform:translate(5317em,160em);}
+#p9>.fi:nth-child(6)::after{content:var(--p9w5,"");}
+#p9>.fi:nth-child(7){transform:translate(5880em,130em);}
+#p9>.fi:nth-child(7)::after{content:var(--p9w6,"");}
+#p9>.fi:nth-child(8){transform:translate(3132em,110em);}
+#p9>.fi:nth-child(8)::after{content:var(--p9w7,"");}
+#p9>.fi:nth-child(9){transform:translate(8540em,150em);}
+#p9>.fi:nth-child(9)::after{content:var(--p9w8,"");}
+#p9>.fi:nth-child(10){transform:translate(6595em,180em);}
+#p9>.fi:nth-child(10)::after{content:var(--p9w9,"");}
+#p9>.fi:nth-child(11){transform:translate(3755em,60em);}
+#p9>.fi:nth-child(11)::after{content:var(--p9w10,"");}
+#p9>.fi:nth-child(12){transform:translate(5166em,70em);}
+#p9>.fi:nth-child(12)::after{content:var(--p9w11,"");}
+#p9>.fi:nth-child(13){transform:translate(2994em,120em);}
+#p9>.fi:nth-child(13)::after{content:var(--p9w12,"");}
+#p9>.fi:nth-child(14){transform:translate(5992em,80em);}
+#p9>.fi:nth-child(14)::after{content:var(--p9w13,"");}
+#p9>.fi:nth-child(15){transform:translate(8302em,90em);}
+#p9>.fi:nth-child(15)::after{content:var(--p9w14,"");}
+#p9>.fi:nth-child(16){transform:translate(6374em,140em);}
+#p9>.fi:nth-child(16)::after{content:var(--p9w15,"");}
+#p9>.fi:nth-child(17){transform:translate(7600em,50em);}
+#p9>.fi:nth-child(17)::after{content:var(--p9w16,"");}
+#p9>.fi:nth-child(18){transform:translate(5895em,20em);}
+#p9>.fi:nth-child(18)::after{content:var(--p9w17,"");}
+#p10>.fi:nth-child(1){transform:translate(5444em,260em);}
+#p10>.fi:nth-child(1)::after{content:var(--p10w0,"");}
+#p10>.fi:nth-child(2){transform:translate(4055em,60em);}
+#p10>.fi:nth-child(2)::after{content:var(--p10w1,"");}
+#p10>.fi:nth-child(3){transform:translate(3521em,210em);}
+#p10>.fi:nth-child(3)::after{content:var(--p10w2,"");}
+#p10>.fi:nth-child(4){transform:translate(1648em,250em);}
+#p10>.fi:nth-child(4)::after{content:var(--p10w3,"");}
+#p10>.fi:nth-child(5){transform:translate(566em,320em);}
+#p10>.fi:nth-child(5)::after{content:var(--p10w4,"");}
+#p10>.fi:nth-child(6){transform:translate(2500em,190em);}
+#p10>.fi:nth-child(6)::after{content:var(--p10w5,"");}
+#p10>.fi:nth-child(7){transform:translate(682em,200em);}
+#p10>.fi:nth-child(7)::after{content:var(--p10w6,"");}
+#p10>.fi:nth-child(8){transform:translate(9334em,330em);}
+#p10>.fi:nth-child(8)::after{content:var(--p10w7,"");}
+#p10>.fi:nth-child(9){transform:translate(2080em,40em);}
+#p10>.fi:nth-child(9)::after{content:var(--p10w8,"");}
+#p10>.fi:nth-child(10){transform:translate(50em,150em);}
+#p10>.fi:nth-child(10)::after{content:var(--p10w9,"");}
+#p10>.fi:nth-child(11){transform:translate(7557em,170em);}
+#p10>.fi:nth-child(11)::after{content:var(--p10w10,"");}
+#p10>.fi:nth-child(12){transform:translate(6165em,350em);}
+#p10>.fi:nth-child(12)::after{content:var(--p10w11,"");}
+#p10>.fi:nth-child(13){transform:translate(24em,180em);}
+#p10>.fi:nth-child(13)::after{content:var(--p10w12,"");}
+#p10>.fi:nth-child(14){transform:translate(516em,160em);}
+#p10>.fi:nth-child(14)::after{content:var(--p10w13,"");}
+#p10>.fi:nth-child(15){transform:translate(9960em,20em);}
+#p10>.fi:nth-child(15)::after{content:var(--p10w14,"");}
+#p10>.fi:nth-child(16){transform:translate(2177em,70em);}
+#p10>.fi:nth-child(16)::after{content:var(--p10w15,"");}
+#p10>.fi:nth-child(17){transform:translate(8299em,80em);}
+#p10>.fi:nth-child(17)::after{content:var(--p10w16,"");}
+#p10>.fi:nth-child(18){transform:translate(508em,90em);}
+#p10>.fi:nth-child(18)::after{content:var(--p10w17,"");}
+#p10>.fi:nth-child(19){transform:translate(3012em,280em);}
+#p10>.fi:nth-child(19)::after{content:var(--p10w18,"");}
+#p10>.fi:nth-child(20){transform:translate(8313em,290em);}
+#p10>.fi:nth-child(20)::after{content:var(--p10w19,"");}
+#p10>.fi:nth-child(21){transform:translate(5192em,50em);}
+#p10>.fi:nth-child(21)::after{content:var(--p10w20,"");}
+#p10>.fi:nth-child(22){transform:translate(6220em,340em);}
+#p10>.fi:nth-child(22)::after{content:var(--p10w21,"");}
+#p10>.fi:nth-child(23){transform:translate(5678em,310em);}
+#p10>.fi:nth-child(23)::after{content:var(--p10w22,"");}
+#p10>.fi:nth-child(24){transform:translate(7011em,10em);}
+#p10>.fi:nth-child(24)::after{content:var(--p10w23,"");}
+#p10>.fi:nth-child(25){transform:translate(2611em,130em);}
+#p10>.fi:nth-child(25)::after{content:var(--p10w24,"");}
+#p10>.fi:nth-child(26){transform:translate(1323em,230em);}
+#p10>.fi:nth-child(26)::after{content:var(--p10w25,"");}
+#p10>.fi:nth-child(27){transform:translate(6065em,120em);}
+#p10>.fi:nth-child(27)::after{content:var(--p10w26,"");}
+#p10>.fi:nth-child(28){transform:translate(1973em,220em);}
+#p10>.fi:nth-child(28)::after{content:var(--p10w27,"");}
+#p10>.fi:nth-child(29){transform:translate(5035em,240em);}
+#p10>.fi:nth-child(29)::after{content:var(--p10w28,"");}
+#p10>.fi:nth-child(30){transform:translate(9421em,300em);}
+#p10>.fi:nth-child(30)::after{content:var(--p10w29,"");}
+#p10>.fi:nth-child(31){transform:translate(1257em,140em);}
+#p10>.fi:nth-child(31)::after{content:var(--p10w30,"");}
+#p10>.fi:nth-child(32){transform:translate(6330em,110em);}
+#p10>.fi:nth-child(32)::after{content:var(--p10w31,"");}
+#p10>.fi:nth-child(33){transform:translate(3264em,100em);}
+#p10>.fi:nth-child(33)::after{content:var(--p10w32,"");}
+#p10>.fi:nth-child(34){transform:translate(6198em,270em);}
+#p10>.fi:nth-child(34)::after{content:var(--p10w33,"");}
+#p10>.fi:nth-child(35){transform:translate(1422em,30em);}
+#p10>.fi:nth-child(35)::after{content:var(--p10w34,"");}
+#p11>.fi:nth-child(1){transform:translate(9048em,100em);}
+#p11>.fi:nth-child(1)::after{content:var(--p11w0,"");}
+#p11>.fi:nth-child(2){transform:translate(155em,150em);}
+#p11>.fi:nth-child(2)::after{content:var(--p11w1,"");}
+#p11>.fi:nth-child(3){transform:translate(8586em,260em);}
+#p11>.fi:nth-child(3)::after{content:var(--p11w2,"");}
+#p11>.fi:nth-child(4){transform:translate(3836em,40em);}
+#p11>.fi:nth-child(4)::after{content:var(--p11w3,"");}
+#p11>.fi:nth-child(5){transform:translate(7809em,210em);}
+#p11>.fi:nth-child(5)::after{content:var(--p11w4,"");}
+#p11>.fi:nth-child(6){transform:translate(3777em,160em);}
+#p11>.fi:nth-child(6)::after{content:var(--p11w5,"");}
+#p11>.fi:nth-child(7){transform:translate(7870em,280em);}
+#p11>.fi:nth-child(7)::after{content:var(--p11w6,"");}
+#p11>.fi:nth-child(8){transform:translate(2834em,320em);}
+#p11>.fi:nth-child(8)::after{content:var(--p11w7,"");}
+#p11>.fi:nth-child(9){transform:translate(772em,180em);}
+#p11>.fi:nth-child(9)::after{content:var(--p11w8,"");}
+#p11>.fi:nth-child(10){transform:translate(4073em,30em);}
+#p11>.fi:nth-child(10)::after{content:var(--p11w9,"");}
+#p11>.fi:nth-child(11){transform:translate(8960em,300em);}
+#p11>.fi:nth-child(11)::after{content:var(--p11w10,"");}
+#p11>.fi:nth-child(12){transform:translate(7241em,70em);}
+#p11>.fi:nth-child(12)::after{content:var(--p11w11,"");}
+#p11>.fi:nth-child(13){transform:translate(7448em,60em);}
+#p11>.fi:nth-child(13)::after{content:var(--p11w12,"");}
+#p11>.fi:nth-child(14){transform:translate(8130em,20em);}
+#p11>.fi:nth-child(14)::after{content:var(--p11w13,"");}
+#p11>.fi:nth-child(15){transform:translate(7772em,310em);}
+#p11>.fi:nth-child(15)::after{content:var(--p11w14,"");}
+#p11>.fi:nth-child(16){transform:translate(4713em,250em);}
+#p11>.fi:nth-child(16)::after{content:var(--p11w15,"");}
+#p11>.fi:nth-child(17){transform:translate(1588em,50em);}
+#p11>.fi:nth-child(17)::after{content:var(--p11w16,"");}
+#p11>.fi:nth-child(18){transform:translate(3431em,10em);}
+#p11>.fi:nth-child(18)::after{content:var(--p11w17,"");}
+#p11>.fi:nth-child(19){transform:translate(8812em,230em);}
+#p11>.fi:nth-child(19)::after{content:var(--p11w18,"");}
+#p11>.fi:nth-child(20){transform:translate(2483em,240em);}
+#p11>.fi:nth-child(20)::after{content:var(--p11w19,"");}
+#p11>.fi:nth-child(21){transform:translate(5037em,190em);}
+#p11>.fi:nth-child(21)::after{content:var(--p11w20,"");}
+#p11>.fi:nth-child(22){transform:translate(4032em,130em);}
+#p11>.fi:nth-child(22)::after{content:var(--p11w21,"");}
+#p11>.fi:nth-child(23){transform:translate(1959em,120em);}
+#p11>.fi:nth-child(23)::after{content:var(--p11w22,"");}
+#p11>.fi:nth-child(24){transform:translate(668em,330em);}
+#p11>.fi:nth-child(24)::after{content:var(--p11w23,"");}
+#p11>.fi:nth-child(25){transform:translate(4203em,220em);}
+#p11>.fi:nth-child(25)::after{content:var(--p11w24,"");}
+#p11>.fi:nth-child(26){transform:translate(9312em,170em);}
+#p11>.fi:nth-child(26)::after{content:var(--p11w25,"");}
+#p11>.fi:nth-child(27){transform:translate(3154em,270em);}
+#p11>.fi:nth-child(27)::after{content:var(--p11w26,"");}
+#p11>.fi:nth-child(28){transform:translate(8756em,110em);}
+#p11>.fi:nth-child(28)::after{content:var(--p11w27,"");}
+#p11>.fi:nth-child(29){transform:translate(75em,290em);}
+#p11>.fi:nth-child(29)::after{content:var(--p11w28,"");}
+#p11>.fi:nth-child(30){transform:translate(5341em,90em);}
+#p11>.fi:nth-child(30)::after{content:var(--p11w29,"");}
+#p11>.fi:nth-child(31){transform:translate(9028em,200em);}
+#p11>.fi:nth-child(31)::after{content:var(--p11w30,"");}
+#p11>.fi:nth-child(32){transform:translate(395em,140em);}
+#p11>.fi:nth-child(32)::after{content:var(--p11w31,"");}
+#p11>.fi:nth-child(33){transform:translate(8776em,80em);}
+#p11>.fi:nth-child(33)::after{content:var(--p11w32,"");}
+#p12>.fi:nth-child(1){transform:translate(4298em,440em);}
+#p12>.fi:nth-child(1)::after{content:var(--p12w0,"");}
+#p12>.fi:nth-child(2){transform:translate(2815em,390em);}
+#p12>.fi:nth-child(2)::after{content:var(--p12w1,"");}
+#p12>.fi:nth-child(3){transform:translate(2779em,590em);}
+#p12>.fi:nth-child(3)::after{content:var(--p12w2,"");}
+#p12>.fi:nth-child(4){transform:translate(5497em,130em);}
+#p12>.fi:nth-child(4)::after{content:var(--p12w3,"");}
+#p12>.fi:nth-child(5){transform:translate(7087em,30em);}
+#p12>.fi:nth-child(5)::after{content:var(--p12w4,"");}
+#p12>.fi:nth-child(6){transform:translate(3554em,270em);}
+#p12>.fi:nth-child(6)::after{content:var(--p12w5,"");}
+#p12>.fi:nth-child(7){transform:translate(2907em,490em);}
+#p12>.fi:nth-child(7)::after{content:var(--p12w6,"");}
+#p12>.fi:nth-child(8){transform:translate(629em,630em);}
+#p12>.fi:nth-child(8)::after{content:var(--p12w7,"");}
+#p12>.fi:nth-child(9){transform:translate(7630em,140em);}
+#p12>.fi:nth-child(9)::after{content:var(--p12w8,"");}
+#p12>.fi:nth-child(10){transform:translate(9743em,370em);}
+#p12>.fi:nth-child(10)::after{content:var(--p12w9,"");}
+#p12>.fi:nth-child(11){transform:translate(203em,610em);}
+#p12>.fi:nth-child(11)::after{content:var(--p12w10,"");}
+#p12>.fi:nth-child(12){transform:translate(5752em,150em);}
+#p12>.fi:nth-child(12)::after{content:var(--p12w11,"");}
+#p12>.fi:nth-child(13){transform:translate(2269em,70em);}
+#p12>.fi:nth-child(13)::after{content:var(--p12w12,"");}
+#p12>.fi:nth-child(14){transform:translate(3286em,470em);}
+#p12>.fi:nth-child(14)::after{content:var(--p12w13,"");}
+#p12>.fi:nth-child(15){transform:translate(2697em,200em);}
+#p12>.fi:nth-child(15)::after{content:var(--p12w14,"");}
+#p12>.fi:nth-child(16){transform:translate(1279em,740em);}
+#p12>.fi:nth-child(16)::after{content:var(--p12w15,"");}
+#p12>.fi:nth-child(17){transform:translate(5168em,280em);}
+#p12>.fi:nth-child(17)::after{content:var(--p12w16,"");}
+#p12>.fi:nth-child(18){transform:translate(5878em,700em);}
+#p12>.fi:nth-child(18)::after{content:var(--p12w17,"");}
+#p12>.fi:nth-child(19){transform:translate(2975em,480em);}
+#p12>.fi:nth-child(19)::after{content:var(--p12w18,"");}
+#p12>.fi:nth-child(20){transform:translate(3319em,540em);}
+#p12>.fi:nth-child(20)::after{content:var(--p12w19,"");}
+#p12>.fi:nth-child(21){transform:translate(6107em,400em);}
+#p12>.fi:nth-child(21)::after{content:var(--p12w20,"");}
+#p12>.fi:nth-child(22){transform:translate(587em,620em);}
+#p12>.fi:nth-child(22)::after{content:var(--p12w21,"");}
+#p12>.fi:nth-child(23){transform:translate(2609em,580em);}
+#p12>.fi:nth-child(23)::after{content:var(--p12w22,"");}
+#p12>.fi:nth-child(24){transform:translate(6519em,120em);}
+#p12>.fi:nth-child(24)::after{content:var(--p12w23,"");}
+#p12>.fi:nth-child(25){transform:translate(3050em,340em);}
+#p12>.fi:nth-child(25)::after{content:var(--p12w24,"");}
+#p12>.fi:nth-child(26){transform:translate(6937em,50em);}
+#p12>.fi:nth-child(26)::after{content:var(--p12w25,"");}
+#p12>.fi:nth-child(27){transform:translate(8690em,330em);}
+#p12>.fi:nth-child(27)::after{content:var(--p12w26,"");}
+#p12>.fi:nth-child(28){transform:translate(4684em,510em);}
+#p12>.fi:nth-child(28)::after{content:var(--p12w27,"");}
+#p12>.fi:nth-child(29){transform:translate(3564em,170em);}
+#p12>.fi:nth-child(29)::after{content:var(--p12w28,"");}
+#p12>.fi:nth-child(30){transform:translate(8276em,640em);}
+#p12>.fi:nth-child(30)::after{content:var(--p12w29,"");}
+#p12>.fi:nth-child(31){transform:translate(8327em,310em);}
+#p12>.fi:nth-child(31)::after{content:var(--p12w30,"");}
+#p12>.fi:nth-child(32){transform:translate(5715em,550em);}
+#p12>.fi:nth-child(32)::after{content:var(--p12w31,"");}
+#p12>.fi:nth-child(33){transform:translate(4504em,320em);}
+#p12>.fi:nth-child(33)::after{content:var(--p12w32,"");}
+#p12>.fi:nth-child(34){transform:translate(4798em,670em);}
+#p12>.fi:nth-child(34)::after{content:var(--p12w33,"");}
+#p12>.fi:nth-child(35){transform:translate(4712em,600em);}
+#p12>.fi:nth-child(35)::after{content:var(--p12w34,"");}
+#p12>.fi:nth-child(36){transform:translate(5646em,570em);}
+#p12>.fi:nth-child(36)::after{content:var(--p12w35,"");}
+#p12>.fi:nth-child(37){transform:translate(5166em,20em);}
+#p12>.fi:nth-child(37)::after{content:var(--p12w36,"");}
+#p12>.fi:nth-child(38){transform:translate(45em,360em);}
+#p12>.fi:nth-child(38)::after{content:var(--p12w37,"");}
+#p12>.fi:nth-child(39){transform:translate(8329em,240em);}
+#p12>.fi:nth-child(39)::after{content:var(--p12w38,"");}
+#p12>.fi:nth-child(40){transform:translate(2792em,690em);}
+#p12>.fi:nth-child(40)::after{content:var(--p12w39,"");}
+#p12>.fi:nth-child(41){transform:translate(5630em,350em);}
+#p12>.fi:nth-child(41)::after{content:var(--p12w40,"");}
+#p12>.fi:nth-child(42){transform:translate(1033em,710em);}
+#p12>.fi:nth-child(42)::after{content:var(--p12w41,"");}
+#p12>.fi:nth-child(43){transform:translate(789em,210em);}
+#p12>.fi:nth-child(43)::after{content:var(--p12w42,"");}
+#p12>.fi:nth-child(44){transform:translate(4625em,660em);}
+#p12>.fi:nth-child(44)::after{content:var(--p12w43,"");}
+#p12>.fi:nth-child(45){transform:translate(8542em,450em);}
+#p12>.fi:nth-child(45)::after{content:var(--p12w44,"");}
+#p12>.fi:nth-child(46){transform:translate(4326em,460em);}
+#p12>.fi:nth-child(46)::after{content:var(--p12w45,"");}
+#p12>.fi:nth-child(47){transform:translate(6883em,110em);}
+#p12>.fi:nth-child(47)::after{content:var(--p12w46,"");}
+#p12>.fi:nth-child(48){transform:translate(5582em,250em);}
+#p12>.fi:nth-child(48)::after{content:var(--p12w47,"");}
+#p12>.fi:nth-child(49){transform:translate(9393em,100em);}
+#p12>.fi:nth-child(49)::after{content:var(--p12w48,"");}
+#p12>.fi:nth-child(50){transform:translate(2191em,60em);}
+#p12>.fi:nth-child(50)::after{content:var(--p12w49,"");}
+#p12>.fi:nth-child(51){transform:translate(5186em,290em);}
+#p12>.fi:nth-child(51)::after{content:var(--p12w50,"");}
+#p12>.fi:nth-child(52){transform:translate(6219em,650em);}
+#p12>.fi:nth-child(52)::after{content:var(--p12w51,"");}
+#p12>.fi:nth-child(53){transform:translate(9830em,720em);}
+#p12>.fi:nth-child(53)::after{content:var(--p12w52,"");}
+#p12>.fi:nth-child(54){transform:translate(2999em,380em);}
+#p12>.fi:nth-child(54)::after{content:var(--p12w53,"");}
+#p12>.fi:nth-child(55){transform:translate(5379em,680em);}
+#p12>.fi:nth-child(55)::after{content:var(--p12w54,"");}
+#p12>.fi:nth-child(56){transform:translate(9284em,260em);}
+#p12>.fi:nth-child(56)::after{content:var(--p12w55,"");}
+#p12>.fi:nth-child(57){transform:translate(322em,420em);}
+#p12>.fi:nth-child(57)::after{content:var(--p12w56,"");}
+#p12>.fi:nth-child(58){transform:translate(6104em,520em);}
+#p12>.fi:nth-child(58)::after{content:var(--p12w57,"");}
+#p12>.fi:nth-child(59){transform:translate(7514em,300em);}
+#p12>.fi:nth-child(59)::after{content:var(--p12w58,"");}
+#p12>.fi:nth-child(60){transform:translate(5498em,220em);}
+#p12>.fi:nth-child(60)::after{content:var(--p12w59,"");}
+#p12>.fi:nth-child(61){transform:translate(3188em,90em);}
+#p12>.fi:nth-child(61)::after{content:var(--p12w60,"");}
+#p12>.fi:nth-child(62){transform:translate(5456em,500em);}
+#p12>.fi:nth-child(62)::after{content:var(--p12w61,"");}
+#p12>.fi:nth-child(63){transform:translate(4278em,730em);}
+#p12>.fi:nth-child(63)::after{content:var(--p12w62,"");}
+#p12>.fi:nth-child(64){transform:translate(322em,10em);}
+#p12>.fi:nth-child(64)::after{content:var(--p12w63,"");}
+#p12>.fi:nth-child(65){transform:translate(5622em,180em);}
+#p12>.fi:nth-child(65)::after{content:var(--p12w64,"");}
+#p12>.fi:nth-child(66){transform:translate(6023em,40em);}
+#p12>.fi:nth-child(66)::after{content:var(--p12w65,"");}
+#p12>.fi:nth-child(67){transform:translate(8436em,410em);}
+#p12>.fi:nth-child(67)::after{content:var(--p12w66,"");}
+#p12>.fi:nth-child(68){transform:translate(7521em,230em);}
+#p12>.fi:nth-child(68)::after{content:var(--p12w67,"");}
+#p12>.fi:nth-child(69){transform:translate(9328em,560em);}
+#p12>.fi:nth-child(69)::after{content:var(--p12w68,"");}
+#p12>.fi:nth-child(70){transform:translate(7518em,430em);}
+#p12>.fi:nth-child(70)::after{content:var(--p12w69,"");}
+#p12>.fi:nth-child(71){transform:translate(5915em,190em);}
+#p12>.fi:nth-child(71)::after{content:var(--p12w70,"");}
+#p12>.fi:nth-child(72){transform:translate(7415em,80em);}
+#p12>.fi:nth-child(72)::after{content:var(--p12w71,"");}
+#p12>.fi:nth-child(73){transform:translate(8466em,530em);}
+#p12>.fi:nth-child(73)::after{content:var(--p12w72,"");}
+#p12>.fi:nth-child(74){transform:translate(3482em,160em);}
+#p12>.fi:nth-child(74)::after{content:var(--p12w73,"");}
+#p13>.fi:nth-child(1){transform:translate(3565em,370em);}
+#p13>.fi:nth-child(1)::after{content:var(--p13w0,"");}
+#p13>.fi:nth-child(2){transform:translate(6135em,100em);}
+#p13>.fi:nth-child(2)::after{content:var(--p13w1,"");}
+#p13>.fi:nth-child(3){transform:translate(3969em,130em);}
+#p13>.fi:nth-child(3)::after{content:var(--p13w2,"");}
+#p13>.fi:nth-child(4){transform:translate(6228em,140em);}
+#p13>.fi:nth-child(4)::after{content:var(--p13w3,"");}
+#p13>.fi:nth-child(5){transform:translate(3433em,290em);}
+#p13>.fi:nth-child(5)::after{content:var(--p13w4,"");}
+#p13>.fi:nth-child(6){transform:translate(2644em,480em);}
+#p13>.fi:nth-child(6)::after{content:var(--p13w5,"");}
+#p13>.fi:nth-child(7){transform:translate(2490em,70em);}
+#p13>.fi:nth-child(7)::after{content:var(--p13w6,"");}
+#p13>.fi:nth-child(8){transform:translate(5778em,510em);}
+#p13>.fi:nth-child(8)::after{content:var(--p13w7,"");}
+#p13>.fi:nth-child(9){transform:translate(8984em,40em);}
+#p13>.fi:nth-child(9)::after{content:var(--p13w8,"");}
+#p13>.fi:nth-child(10){transform:translate(676em,220em);}
+#p13>.fi:nth-child(10)::after{content:var(--p13w9,"");}
+#p13>.fi:nth-child(11){transform:translate(5701em,400em);}
+#p13>.fi:nth-child(11)::after{content:var(--p13w10,"");}
+#p13>.fi:nth-child(12){transform:translate(5870em,170em);}
+#p13>.fi:nth-child(12)::after{content:var(--p13w11,"");}
+#p13>.fi:nth-child(13){transform:translate(4191em,360em);}
+#p13>.fi:nth-child(13)::after{content:var(--p13w12,"");}
+#p13>.fi:nth-child(14){transform:translate(9400em,470em);}
+#p13>.fi:nth-child(14)::after{content:var(--p13w13,"");}
+#p13>.fi:nth-child(15){transform:translate(224em,10em);}
+#p13>.fi:nth-child(15)::after{content:var(--p13w14,"");}
+#p13>.fi:nth-child(16){transform:translate(1914em,520em);}
+#p13>.fi:nth-child(16)::after{content:var(--p13w15,"");}
+#p13>.fi:nth-child(17){transform:translate(8278em,410em);}
+#p13>.fi:nth-child(17)::after{content:var(--p13w16,"");}
+#p13>.fi:nth-child(18){transform:translate(1455em,460em);}
+#p13>.fi:nth-child(18)::after{content:var(--p13w17,"");}
+#p13>.fi:nth-child(19){transform:translate(199em,530em);}
+#p13>.fi:nth-child(19)::after{content:var(--p13w18,"");}
+#p13>.fi:nth-child(20){transform:translate(7102em,420em);}
+#p13>.fi:nth-child(20)::after{content:var(--p13w19,"");}
+#p13>.fi:nth-child(21){transform:translate(7499em,30em);}
+#p13>.fi:nth-child(21)::after{content:var(--p13w20,"");}
+#p13>.fi:nth-child(22){transform:translate(439em,20em);}
+#p13>.fi:nth-child(22)::after{content:var(--p13w21,"");}
+#p13>.fi:nth-child(23){transform:translate(7174em,110em);}
+#p13>.fi:nth-child(23)::after{content:var(--p13w22,"");}
+#p13>.fi:nth-child(24){transform:translate(9151em,250em);}
+#p13>.fi:nth-child(24)::after{content:var(--p13w23,"");}
+#p13>.fi:nth-child(25){transform:translate(8838em,210em);}
+#p13>.fi:nth-child(25)::after{content:var(--p13w24,"");}
+#p13>.fi:nth-child(26){transform:translate(7975em,240em);}
+#p13>.fi:nth-child(26)::after{content:var(--p13w25,"");}
+#p13>.fi:nth-child(27){transform:translate(6445em,50em);}
+#p13>.fi:nth-child(27)::after{content:var(--p13w26,"");}
+#p13>.fi:nth-child(28){transform:translate(592em,270em);}
+#p13>.fi:nth-child(28)::after{content:var(--p13w27,"");}
+#p13>.fi:nth-child(29){transform:translate(4938em,450em);}
+#p13>.fi:nth-child(29)::after{content:var(--p13w28,"");}
+#p13>.fi:nth-child(30){transform:translate(5048em,350em);}
+#p13>.fi:nth-child(30)::after{content:var(--p13w29,"");}
+#p13>.fi:nth-child(31){transform:translate(9937em,320em);}
+#p13>.fi:nth-child(31)::after{content:var(--p13w30,"");}
+#p13>.fi:nth-child(32){transform:translate(6132em,440em);}
+#p13>.fi:nth-child(32)::after{content:var(--p13w31,"");}
+#p13>.fi:nth-child(33){transform:translate(5091em,310em);}
+#p13>.fi:nth-child(33)::after{content:var(--p13w32,"");}
+#p13>.fi:nth-child(34){transform:translate(491em,540em);}
+#p13>.fi:nth-child(34)::after{content:var(--p13w33,"");}
+#p13>.fi:nth-child(35){transform:translate(9331em,300em);}
+#p13>.fi:nth-child(35)::after{content:var(--p13w34,"");}
+#p13>.fi:nth-child(36){transform:translate(8582em,280em);}
+#p13>.fi:nth-child(36)::after{content:var(--p13w35,"");}
+#p13>.fi:nth-child(37){transform:translate(8471em,150em);}
+#p13>.fi:nth-child(37)::after{content:var(--p13w36,"");}
+#p13>.fi:nth-child(38){transform:translate(8914em,390em);}
+#p13>.fi:nth-child(38)::after{content:var(--p13w37,"");}
+#p13>.fi:nth-child(39){transform:translate(1510em,60em);}
+#p13>.fi:nth-child(39)::after{content:var(--p13w38,"");}
+#p13>.fi:nth-child(40){transform:translate(287em,490em);}
+#p13>.fi:nth-child(40)::after{content:var(--p13w39,"");}
+#p13>.fi:nth-child(41){transform:translate(9840em,550em);}
+#p13>.fi:nth-child(41)::after{content:var(--p13w40,"");}
+#p13>.fi:nth-child(42){transform:translate(5496em,190em);}
+#p13>.fi:nth-child(42)::after{content:var(--p13w41,"");}
+#p13>.fi:nth-child(43){transform:translate(2535em,260em);}
+#p13>.fi:nth-child(43)::after{content:var(--p13w42,"");}
+#p13>.fi:nth-child(44){transform:translate(2142em,560em);}
+#p13>.fi:nth-child(44)::after{content:var(--p13w43,"");}
+#p13>.fi:nth-child(45){transform:translate(2726em,160em);}
+#p13>.fi:nth-child(45)::after{content:var(--p13w44,"");}
+#p13>.fi:nth-child(46){transform:translate(8074em,230em);}
+#p13>.fi:nth-child(46)::after{content:var(--p13w45,"");}
+#p13>.fi:nth-child(47){transform:translate(1064em,430em);}
+#p13>.fi:nth-child(47)::after{content:var(--p13w46,"");}
+#p13>.fi:nth-child(48){transform:translate(6553em,330em);}
+#p13>.fi:nth-child(48)::after{content:var(--p13w47,"");}
+#p13>.fi:nth-child(49){transform:translate(4710em,180em);}
+#p13>.fi:nth-child(49)::after{content:var(--p13w48,"");}
+#p13>.fi:nth-child(50){transform:translate(6340em,200em);}
+#p13>.fi:nth-child(50)::after{content:var(--p13w49,"");}
+#p13>.fi:nth-child(51){transform:translate(1831em,380em);}
+#p13>.fi:nth-child(51)::after{content:var(--p13w50,"");}
+#p13>.fi:nth-child(52){transform:translate(5078em,80em);}
+#p13>.fi:nth-child(52)::after{content:var(--p13w51,"");}
+#p13>.fi:nth-child(53){transform:translate(2279em,340em);}
+#p13>.fi:nth-child(53)::after{content:var(--p13w52,"");}
+#p13>.fi:nth-child(54){transform:translate(1226em,500em);}
+#p13>.fi:nth-child(54)::after{content:var(--p13w53,"");}
+#p13>.fi:nth-child(55){transform:translate(6123em,90em);}
+#p13>.fi:nth-child(55)::after{content:var(--p13w54,"");}
+#p13>.fi:nth-child(56){transform:translate(6552em,120em);}
+#p13>.fi:nth-child(56)::after{content:var(--p13w55,"");}
+#p14>.fi:nth-child(1){transform:translate(7539em,30em);}
+#p14>.fi:nth-child(1)::after{content:var(--p14w0,"");}
+#p14>.fi:nth-child(2){transform:translate(376em,100em);}
+#p14>.fi:nth-child(2)::after{content:var(--p14w1,"");}
+#p14>.fi:nth-child(3){transform:translate(3773em,120em);}
+#p14>.fi:nth-child(3)::after{content:var(--p14w2,"");}
+#p14>.fi:nth-child(4){transform:translate(8648em,90em);}
+#p14>.fi:nth-child(4)::after{content:var(--p14w3,"");}
+#p14>.fi:nth-child(5){transform:translate(8119em,40em);}
+#p14>.fi:nth-child(5)::after{content:var(--p14w4,"");}
+#p14>.fi:nth-child(6){transform:translate(1236em,70em);}
+#p14>.fi:nth-child(6)::after{content:var(--p14w5,"");}
+#p14>.fi:nth-child(7){transform:translate(3471em,60em);}
+#p14>.fi:nth-child(7)::after{content:var(--p14w6,"");}
+#p14>.fi:nth-child(8){transform:translate(8451em,80em);}
+#p14>.fi:nth-child(8)::after{content:var(--p14w7,"");}
+#p14>.fi:nth-child(9){transform:translate(4499em,10em);}
+#p14>.fi:nth-child(9)::after{content:var(--p14w8,"");}
+#p14>.fi:nth-child(10){transform:translate(5177em,110em);}
+#p14>.fi:nth-child(10)::after{content:var(--p14w9,"");}
+#p14>.fi:nth-child(11){transform:translate(8855em,130em);}
+#p14>.fi:nth-child(11)::after{content:var(--p14w10,"");}
+#p14>.fi:nth-child(12){transform:translate(1599em,20em);}
+#p14>.fi:nth-child(12)::after{content:var(--p14w11,"");}
+#p14>.fi:nth-child(13){transform:translate(121em,50em);}
+#p14>.fi:nth-child(13)::after{content:var(--p14w12,"");}
+#p15>.fi:nth-child(1){transform:translate(7265em,550em);}
+#p15>.fi:nth-child(1)::after{content:var(--p15w0,"");}
+#p15>.fi:nth-child(2){transform:translate(7778em,360em);}
+#p15>.fi:nth-child(2)::after{content:var(--p15w1,"");}
+#p15>.fi:nth-child(3){transform:translate(8166em,600em);}
+#p15>.fi:nth-child(3)::after{content:var(--p15w2,"");}
+#p15>.fi:nth-child(4){transform:translate(4217em,160em);}
+#p15>.fi:nth-child(4)::after{content:var(--p15w3,"");}
+#p15>.fi:nth-child(5){transform:translate(6108em,150em);}
+#p15>.fi:nth-child(5)::after{content:var(--p15w4,"");}
+#p15>.fi:nth-child(6){transform:translate(6704em,590em);}
+#p15>.fi:nth-child(6)::after{content:var(--p15w5,"");}
+#p15>.fi:nth-child(7){transform:translate(4792em,250em);}
+#p15>.fi:nth-child(7)::after{content:var(--p15w6,"");}
+#p15>.fi:nth-child(8){transform:translate(496em,30em);}
+#p15>.fi:nth-child(8)::after{content:var(--p15w7,"");}
+#p15>.fi:nth-child(9){transform:translate(6028em,310em);}
+#p15>.fi:nth-child(9)::after{content:var(--p15w8,"");}
+#p15>.fi:nth-child(10){transform:translate(3763em,40em);}
+#p15>.fi:nth-child(10)::after{content:var(--p15w9,"");}
+#p15>.fi:nth-child(11){transform:translate(7710em,180em);}
+#p15>.fi:nth-child(11)::after{content:var(--p15w10,"");}
+#p15>.fi:nth-child(12){transform:translate(5428em,660em);}
+#p15>.fi:nth-child(12)::after{content:var(--p15w11,"");}
+#p15>.fi:nth-child(13){transform:translate(2868em,320em);}
+#p15>.fi:nth-child(13)::after{content:var(--p15w12,"");}
+#p15>.fi:nth-child(14){transform:translate(4598em,380em);}
+#p15>.fi:nth-child(14)::after{content:var(--p15w13,"");}
+#p15>.fi:nth-child(15){transform:translate(6053em,530em);}
+#p15>.fi:nth-child(15)::after{content:var(--p15w14,"");}
+#p15>.fi:nth-child(16){transform:translate(3083em,370em);}
+#p15>.fi:nth-child(16)::after{content:var(--p15w15,"");}
+#p15>.fi:nth-child(17){transform:translate(2263em,460em);}
+#p15>.fi:nth-child(17)::after{content:var(--p15w16,"");}
+#p15>.fi:nth-child(18){transform:translate(1341em,170em);}
+#p15>.fi:nth-child(18)::after{content:var(--p15w17,"");}
+#p15>.fi:nth-child(19){transform:translate(236em,60em);}
+#p15>.fi:nth-child(19)::after{content:var(--p15w18,"");}
+#p15>.fi:nth-child(20){transform:translate(7955em,490em);}
+#p15>.fi:nth-child(20)::after{content:var(--p15w19,"");}
+#p15>.fi:nth-child(21){transform:translate(6077em,570em);}
+#p15>.fi:nth-child(21)::after{content:var(--p15w20,"");}
+#p15>.fi:nth-child(22){transform:translate(4903em,230em);}
+#p15>.fi:nth-child(22)::after{content:var(--p15w21,"");}
+#p15>.fi:nth-child(23){transform:translate(646em,220em);}
+#p15>.fi:nth-child(23)::after{content:var(--p15w22,"");}
+#p15>.fi:nth-child(24){transform:translate(2154em,80em);}
+#p15>.fi:nth-child(24)::after{content:var(--p15w23,"");}
+#p15>.fi:nth-child(25){transform:translate(2029em,580em);}
+#p15>.fi:nth-child(25)::after{content:var(--p15w24,"");}
+#p15>.fi:nth-child(26){transform:translate(4783em,390em);}
+#p15>.fi:nth-child(26)::after{content:var(--p15w25,"");}
+#p15>.fi:nth-child(27){transform:translate(3044em,280em);}
+#p15>.fi:nth-child(27)::after{content:var(--p15w26,"");}
+#p15>.fi:nth-child(28){transform:translate(2179em,10em);}
+#p15>.fi:nth-child(28)::after{content:var(--p15w27,"");}
+#p15>.fi:nth-child(29){transform:translate(636em,400em);}
+#p15>.fi:nth-child(29)::after{content:var(--p15w28,"");}
+#p15>.fi:nth-child(30){transform:translate(9990em,450em);}
+#p15>.fi:nth-child(30)::after{content:var(--p15w29,"");}
+#p15>.fi:nth-child(31){transform:translate(3596em,70em);}
+#p15>.fi:nth-child(31)::after{content:var(--p15w30,"");}
+#p15>.fi:nth-child(32){transform:translate(3559em,100em);}
+#p15>.fi:nth-child(32)::after{content:var(--p15w31,"");}
+#p15>.fi:nth-child(33){transform:translate(5084em,430em);}
+#p15>.fi:nth-child(33)::after{content:var(--p15w32,"");}
+#p15>.fi:nth-child(34){transform:translate(7077em,540em);}
+#p15>.fi:nth-child(34)::after{content:var(--p15w33,"");}
+#p15>.fi:nth-child(35){transform:translate(3637em,240em);}
+#p15>.fi:nth-child(35)::after{content:var(--p15w34,"");}
+#p15>.fi:nth-child(36){transform:translate(5240em,20em);}
+#p15>.fi:nth-child(36)::after{content:var(--p15w35,"");}
+#p15>.fi:nth-child(37){transform:translate(4928em,620em);}
+#p15>.fi:nth-child(37)::after{content:var(--p15w36,"");}
+#p15>.fi:nth-child(38){transform:translate(949em,50em);}
+#p15>.fi:nth-child(38)::after{content:var(--p15w37,"");}
+#p15>.fi:nth-child(39){transform:translate(6219em,200em);}
+#p15>.fi:nth-child(39)::after{content:var(--p15w38,"");}
+#p15>.fi:nth-child(40){transform:translate(7634em,120em);}
+#p15>.fi:nth-child(40)::after{content:var(--p15w39,"");}
+#p15>.fi:nth-child(41){transform:translate(2168em,410em);}
+#p15>.fi:nth-child(41)::after{content:var(--p15w40,"");}
+#p15>.fi:nth-child(42){transform:translate(1312em,560em);}
+#p15>.fi:nth-child(42)::after{content:var(--p15w41,"");}
+#p15>.fi:nth-child(43){transform:translate(3206em,480em);}
+#p15>.fi:nth-child(43)::after{content:var(--p15w42,"");}
+#p15>.fi:nth-child(44){transform:translate(6280em,330em);}
+#p15>.fi:nth-child(44)::after{content:var(--p15w43,"");}
+#p15>.fi:nth-child(45){transform:translate(158em,470em);}
+#p15>.fi:nth-child(45)::after{content:var(--p15w44,"");}
+#p15>.fi:nth-child(46){transform:translate(2175em,500em);}
+#p15>.fi:nth-child(46)::after{content:var(--p15w45,"");}
+#p15>.fi:nth-child(47){transform:translate(7740em,650em);}
+#p15>.fi:nth-child(47)::after{content:var(--p15w46,"");}
+#p15>.fi:nth-child(48){transform:translate(6307em,610em);}
+#p15>.fi:nth-child(48)::after{content:var(--p15w47,"");}
+#p15>.fi:nth-child(49){transform:translate(1418em,110em);}
+#p15>.fi:nth-child(49)::after{content:var(--p15w48,"");}
+#p15>.fi:nth-child(50){transform:translate(4951em,520em);}
+#p15>.fi:nth-child(50)::after{content:var(--p15w49,"");}
+#p15>.fi:nth-child(51){transform:translate(559em,640em);}
+#p15>.fi:nth-child(51)::after{content:var(--p15w50,"");}
+#p15>.fi:nth-child(52){transform:translate(951em,440em);}
+#p15>.fi:nth-child(52)::after{content:var(--p15w51,"");}
+#p15>.fi:nth-child(53){transform:translate(1743em,350em);}
+#p15>.fi:nth-child(53)::after{content:var(--p15w52,"");}
+#p15>.fi:nth-child(54){transform:translate(8215em,300em);}
+#p15>.fi:nth-child(54)::after{content:var(--p15w53,"");}
+#p15>.fi:nth-child(55){transform:translate(1417em,340em);}
+#p15>.fi:nth-child(55)::after{content:var(--p15w54,"");}
+#p15>.fi:nth-child(56){transform:translate(80em,210em);}
+#p15>.fi:nth-child(56)::after{content:var(--p15w55,"");}
+#p15>.fi:nth-child(57){transform:translate(5333em,420em);}
+#p15>.fi:nth-child(57)::after{content:var(--p15w56,"");}
+#p15>.fi:nth-child(58){transform:translate(6284em,140em);}
+#p15>.fi:nth-child(58)::after{content:var(--p15w57,"");}
+#p15>.fi:nth-child(59){transform:translate(1127em,90em);}
+#p15>.fi:nth-child(59)::after{content:var(--p15w58,"");}
+#p15>.fi:nth-child(60){transform:translate(935em,260em);}
+#p15>.fi:nth-child(60)::after{content:var(--p15w59,"");}
+#p15>.fi:nth-child(61){transform:translate(3116em,510em);}
+#p15>.fi:nth-child(61)::after{content:var(--p15w60,"");}
+#p15>.fi:nth-child(62){transform:translate(464em,190em);}
+#p15>.fi:nth-child(62)::after{content:var(--p15w61,"");}
+#p15>.fi:nth-child(63){transform:translate(5840em,270em);}
+#p15>.fi:nth-child(63)::after{content:var(--p15w62,"");}
+#p15>.fi:nth-child(64){transform:translate(6302em,630em);}
+#p15>.fi:nth-child(64)::after{content:var(--p15w63,"");}
+#p15>.fi:nth-child(65){transform:translate(4951em,130em);}
+#p15>.fi:nth-child(65)::after{content:var(--p15w64,"");}
+#p15>.fi:nth-child(66){transform:translate(1380em,290em);}
+#p15>.fi:nth-child(66)::after{content:var(--p15w65,"");}
+#p16>.fi:nth-child(1){transform:translate(8392em,260em);}
+#p16>.fi:nth-child(1)::after{content:var(--p16w0,"");}
+#p16>.fi:nth-child(2){transform:translate(9119em,250em);}
+#p16>.fi:nth-child(2)::after{content:var(--p16w1,"");}
+#p16>.fi:nth-child(3){transform:translate(9420em,190em);}
+#p16>.fi:nth-child(3)::after{content:var(--p16w2,"");}
+#p16>.fi:nth-child(4){transform:translate(1271em,220em);}
+#p16>.fi:nth-child(4)::after{content:var(--p16w3,"");}
+#p16>.fi:nth-child(5){transform:translate(1800em,210em);}
+#p16>.fi:nth-child(5)::after{content:var(--p16w4,"");}
+#p16>.fi:nth-child(6){transform:translate(2437em,40em);}
+#p16>.fi:nth-child(6)::after{content:var(--p16w5,"");}
+#p16>.fi:nth-child(7){transform:translate(3967em,10em);}
+#p16>.fi:nth-child(7)::after{content:var(--p16w6,"");}
+#p16>.fi:nth-child(8){transform:translate(3102em,110em);}
+#p16>.fi:nth-child(8)::after{content:var(--p16w7,"");}
+#p16>.fi:nth-child(9){transform:translate(4806em,70em);}
+#p16>.fi:nth-child(9)::after{content:var(--p16w8,"");}
+#p16>.fi:nth-child(10){transform:translate(1298em,230em);}
+#p16>.fi:nth-child(10)::after{content:var(--p16w9,"");}
+#p16>.fi:nth-child(11){transform:translate(7495em,270em);}
+#p16>.fi:nth-child(11)::after{content:var(--p16w10,"");}
+#p16>.fi:nth-child(12){transform:translate(839em,290em);}
+#p16>.fi:nth-child(12)::after{content:var(--p16w11,"");}
+#p16>.fi:nth-child(13){transform:translate(993em,200em);}
+#p16>.fi:nth-child(13)::after{content:var(--p16w12,"");}
+#p16>.fi:nth-child(14){transform:translate(3376em,80em);}
+#p16>.fi:nth-child(14)::after{content:var(--p16w13,"");}
+#p16>.fi:nth-child(15){transform:translate(1599em,360em);}
+#p16>.fi:nth-child(15)::after{content:var(--p16w14,"");}
+#p16>.fi:nth-child(16){transform:translate(246em,160em);}
+#p16>.fi:nth-child(16)::after{content:var(--p16w15,"");}
+#p16>.fi:nth-child(17){transform:translate(2708em,50em);}
+#p16>.fi:nth-child(17)::after{content:var(--p16w16,"");}
+#p16>.fi:nth-child(18){transform:translate(5877em,20em);}
+#p16>.fi:nth-child(18)::after{content:var(--p16w17,"");}
+#p16>.fi:nth-child(19){transform:translate(8898em,60em);}
+#p16>.fi:nth-child(19)::after{content:var(--p16w18,"");}
+#p16>.fi:nth-child(20){transform:translate(3303em,340em);}
+#p16>.fi:nth-child(20)::after{content:var(--p16w19,"");}
+#p16>.fi:nth-child(21){transform:translate(7409em,130em);}
+#p16>.fi:nth-child(21)::after{content:var(--p16w20,"");}
+#p16>.fi:nth-child(22){transform:translate(2101em,30em);}
+#p16>.fi:nth-child(22)::after{content:var(--p16w21,"");}
+#p16>.fi:nth-child(23){transform:translate(3962em,310em);}
+#p16>.fi:nth-child(23)::after{content:var(--p16w22,"");}
+#p16>.fi:nth-child(24){transform:translate(4550em,140em);}
+#p16>.fi:nth-child(24)::after{content:var(--p16w23,"");}
+#p16>.fi:nth-child(25){transform:translate(9424em,300em);}
+#p16>.fi:nth-child(25)::after{content:var(--p16w24,"");}
+#p16>.fi:nth-child(26){transform:translate(767em,170em);}
+#p16>.fi:nth-child(26)::after{content:var(--p16w25,"");}
+#p16>.fi:nth-child(27){transform:translate(5253em,350em);}
+#p16>.fi:nth-child(27)::after{content:var(--p16w26,"");}
+#p16>.fi:nth-child(28){transform:translate(6337em,150em);}
+#p16>.fi:nth-child(28)::after{content:var(--p16w27,"");}
+#p16>.fi:nth-child(29){transform:translate(8221em,100em);}
+#p16>.fi:nth-child(29)::after{content:var(--p16w28,"");}
+#p16>.fi:nth-child(30){transform:translate(9535em,280em);}
+#p16>.fi:nth-child(30)::after{content:var(--p16w29,"");}
+#p16>.fi:nth-child(31){transform:translate(3492em,120em);}
+#p16>.fi:nth-child(31)::after{content:var(--p16w30,"");}
+#p16>.fi:nth-child(32){transform:translate(8164em,330em);}
+#p16>.fi:nth-child(32)::after{content:var(--p16w31,"");}
+#p16>.fi:nth-child(33){transform:translate(1710em,370em);}
+#p16>.fi:nth-child(33)::after{content:var(--p16w32,"");}
+#p16>.fi:nth-child(34){transform:translate(2310em,240em);}
+#p16>.fi:nth-child(34)::after{content:var(--p16w33,"");}
+#p16>.fi:nth-child(35){transform:translate(7008em,180em);}
+#p16>.fi:nth-child(35)::after{content:var(--p16w34,"");}
+#p16>.fi:nth-child(36){transform:translate(6560em,320em);}
+#p16>.fi:nth-child(36)::after{content:var(--p16w35,"");}
+#p16>.fi:nth-child(37){transform:translate(1134em,90em);}
+#p16>.fi:nth-child(37)::after{content:var(--p16w36,"");}
+#p17>.fi:nth-child(1){transform:translate(8726em,50em);}
+#p17>.fi:nth-child(1)::after{content:var(--p17w0,"");}
+#p17>.fi:nth-child(2){transform:translate(6415em,10em);}
+#p17>.fi:nth-child(2)::after{content:var(--p17w1,"");}
+#p17>.fi:nth-child(3){transform:translate(4431em,70em);}
+#p17>.fi:nth-child(3)::after{content:var(--p17w2,"");}
+#p17>.fi:nth-child(4){transform:translate(768em,40em);}
+#p17>.fi:nth-child(4)::after{content:var(--p17w3,"");}
+#p17>.fi:nth-child(5){transform:translate(218em,20em);}
+#p17>.fi:nth-child(5)::after{content:var(--p17w4,"");}
+#p17>.fi:nth-child(6){transform:translate(9696em,30em);}
+#p17>.fi:nth-child(6)::after{content:var(--p17w5,"");}
+#p17>.fi:nth-child(7){transform:translate(2528em,60em);}
+#p17>.fi:nth-child(7)::after{content:var(--p17w6,"");}
+#p18>.fi:nth-child(1){transform:translate(620em,30em);}
+#p18>.fi:nth-child(1)::after{content:var(--p18w0,"");}
+#p18>.fi:nth-child(2){transform:translate(7976em,20em);}
+#p18>.fi:nth-child(2)::after{content:var(--p18w1,"");}
+#p18>.fi:nth-child(3){transform:translate(7986em,80em);}
+#p18>.fi:nth-child(3)::after{content:var(--p18w2,"");}
+#p18>.fi:nth-child(4){transform:translate(2620em,40em);}
+#p18>.fi:nth-child(4)::after{content:var(--p18w3,"");}
+#p18>.fi:nth-child(5){transform:translate(9637em,10em);}
+#p18>.fi:nth-child(5)::after{content:var(--p18w4,"");}
+#p18>.fi:nth-child(6){transform:translate(1220em,60em);}
+#p18>.fi:nth-child(6)::after{content:var(--p18w5,"");}
+#p18>.fi:nth-child(7){transform:translate(7788em,90em);}
+#p18>.fi:nth-child(7)::after{content:var(--p18w6,"");}
+#p18>.fi:nth-child(8){transform:translate(6640em,50em);}
+#p18>.fi:nth-child(8)::after{content:var(--p18w7,"");}
+#p18>.fi:nth-child(9){transform:translate(5190em,70em);}
+#p18>.fi:nth-child(9)::after{content:var(--p18w8,"");}
+#p19>.fi:nth-child(1){transform:translate(2126em,190em);}
+#p19>.fi:nth-child(1)::after{content:var(--p19w0,"");}
+#p19>.fi:nth-child(2){transform:translate(9032em,10em);}
+#p19>.fi:nth-child(2)::after{content:var(--p19w1,"");}
+#p19>.fi:nth-child(3){transform:translate(2873em,70em);}
+#p19>.fi:nth-child(3)::after{content:var(--p19w2,"");}
+#p19>.fi:nth-child(4){transform:translate(7059em,50em);}
+#p19>.fi:nth-child(4)::after{content:var(--p19w3,"");}
+#p19>.fi:nth-child(5){transform:translate(3980em,250em);}
+#p19>.fi:nth-child(5)::after{content:var(--p19w4,"");}
+#p19>.fi:nth-child(6){transform:translate(9239em,60em);}
+#p19>.fi:nth-child(6)::after{content:var(--p19w5,"");}
+#p19>.fi:nth-child(7){transform:translate(4147em,40em);}
+#p19>.fi:nth-child(7)::after{content:var(--p19w6,"");}
+#p19>.fi:nth-child(8){transform:translate(5190em,30em);}
+#p19>.fi:nth-child(8)::after{content:var(--p19w7,"");}
+#p19>.fi:nth-child(9){transform:translate(8968em,280em);}
+#p19>.fi:nth-child(9)::after{content:var(--p19w8,"");}
+#p19>.fi:nth-child(10){transform:translate(4373em,230em);}
+#p19>.fi:nth-child(10)::after{content:var(--p19w9,"");}
+#p19>.fi:nth-child(11){transform:translate(3037em,150em);}
+#p19>.fi:nth-child(11)::after{content:var(--p19w10,"");}
+#p19>.fi:nth-child(12){transform:translate(3995em,100em);}
+#p19>.fi:nth-child(12)::after{content:var(--p19w11,"");}
+#p19>.fi:nth-child(13){transform:translate(4010em,300em);}
+#p19>.fi:nth-child(13)::after{content:var(--p19w12,"");}
+#p19>.fi:nth-child(14){transform:translate(4304em,310em);}
+#p19>.fi:nth-child(14)::after{content:var(--p19w13,"");}
+#p19>.fi:nth-child(15){transform:translate(724em,290em);}
+#p19>.fi:nth-child(15)::after{content:var(--p19w14,"");}
+#p19>.fi:nth-child(16){transform:translate(5510em,180em);}
+#p19>.fi:nth-child(16)::after{content:var(--p19w15,"");}
+#p19>.fi:nth-child(17){transform:translate(2485em,210em);}
+#p19>.fi:nth-child(17)::after{content:var(--p19w16,"");}
+#p19>.fi:nth-child(18){transform:translate(8556em,80em);}
+#p19>.fi:nth-child(18)::after{content:var(--p19w17,"");}
+#p19>.fi:nth-child(19){transform:translate(6036em,160em);}
+#p19>.fi:nth-child(19)::after{content:var(--p19w18,"");}
+#p19>.fi:nth-child(20){transform:translate(8005em,170em);}
+#p19>.fi:nth-child(20)::after{content:var(--p19w19,"");}
+#p19>.fi:nth-child(21){transform:translate(3077em,90em);}
+#p19>.fi:nth-child(21)::after{content:var(--p19w20,"");}
+#p19>.fi:nth-child(22){transform:translate(7126em,110em);}
+#p19>.fi:nth-child(22)::after{content:var(--p19w21,"");}
+#p19>.fi:nth-child(23){transform:translate(4057em,120em);}
+#p19>.fi:nth-child(23)::after{content:var(--p19w22,"");}
+#p19>.fi:nth-child(24){transform:translate(3762em,270em);}
+#p19>.fi:nth-child(24)::after{content:var(--p19w23,"");}
+#p19>.fi:nth-child(25){transform:translate(8921em,140em);}
+#p19>.fi:nth-child(25)::after{content:var(--p19w24,"");}
+#p19>.fi:nth-child(26){transform:translate(1283em,240em);}
+#p19>.fi:nth-child(26)::after{content:var(--p19w25,"");}
+#p19>.fi:nth-child(27){transform:translate(9364em,20em);}
+#p19>.fi:nth-child(27)::after{content:var(--p19w26,"");}
+#p19>.fi:nth-child(28){transform:translate(6224em,130em);}
+#p19>.fi:nth-child(28)::after{content:var(--p19w27,"");}
+#p19>.fi:nth-child(29){transform:translate(2418em,220em);}
+#p19>.fi:nth-child(29)::after{content:var(--p19w28,"");}
+#p19>.fi:nth-child(30){transform:translate(6469em,260em);}
+#p19>.fi:nth-child(30)::after{content:var(--p19w29,"");}
+#p19>.fi:nth-child(31){transform:translate(2967em,200em);}
+#p19>.fi:nth-child(31)::after{content:var(--p19w30,"");}
+#p20>.fi:nth-child(1){transform:translate(4687em,140em);}
+#p20>.fi:nth-child(1)::after{content:var(--p20w0,"");}
+#p20>.fi:nth-child(2){transform:translate(2835em,190em);}
+#p20>.fi:nth-child(2)::after{content:var(--p20w1,"");}
+#p20>.fi:nth-child(3){transform:translate(4985em,80em);}
+#p20>.fi:nth-child(3)::after{content:var(--p20w2,"");}
+#p20>.fi:nth-child(4){transform:translate(9218em,10em);}
+#p20>.fi:nth-child(4)::after{content:var(--p20w3,"");}
+#p20>.fi:nth-child(5){transform:translate(8042em,30em);}
+#p20>.fi:nth-child(5)::after{content:var(--p20w4,"");}
+#p20>.fi:nth-child(6){transform:translate(1743em,40em);}
+#p20>.fi:nth-child(6)::after{content:var(--p20w5,"");}
+#p20>.fi:nth-child(7){transform:translate(7291em,90em);}
+#p20>.fi:nth-child(7)::after{content:var(--p20w6,"");}
+#p20>.fi:nth-child(8){transform:translate(7314em,170em);}
+#p20>.fi:nth-child(8)::after{content:var(--p20w7,"");}
+#p20>.fi:nth-child(9){transform:translate(216em,70em);}
+#p20>.fi:nth-child(9)::after{content:var(--p20w8,"");}
+#p20>.fi:nth-child(10){transform:translate(9407em,60em);}
+#p20>.fi:nth-child(10)::after{content:var(--p20w9,"");}
+#p20>.fi:nth-child(11){transform:translate(9953em,120em);}
+#p20>.fi:nth-child(11)::after{content:var(--p20w10,"");}
+#p20>.fi:nth-child(12){transform:translate(5091em,200em);}
+#p20>.fi:nth-child(12)::after{content:var(--p20w11,"");}
+#p20>.fi:nth-child(13){transform:translate(9646em,150em);}
+#p20>.fi:nth-child(13)::after{content:var(--p20w12,"");}
+#p20>.fi:nth-child(14){transform:translate(6982em,180em);}
+#p20>.fi:nth-child(14)::after{content:var(--p20w13,"");}
+#p20>.fi:nth-child(15){transform:translate(3685em,210em);}
+#p20>.fi:nth-child(15)::after{content:var(--p20w14,"");}
+#p20>.fi:nth-child(16){transform:translate(6430em,20em);}
+#p20>.fi:nth-child(16)::after{content:var(--p20w15,"");}
+#p20>.fi:nth-child(17){transform:translate(2172em,160em);}
+#p20>.fi:nth-child(17)::after{content:var(--p20w16,"");}
+#p20>.fi:nth-child(18){transform:translate(5126em,100em);}
+#p20>.fi:nth-child(18)::after{content:var(--p20w17,"");}
+#p20>.fi:nth-child(19){transform:translate(7162em,50em);}
+#p20>.fi:nth-child(19)::after{content:var(--p20w18,"");}
+#p20>.fi:nth-child(20){transform:translate(5055em,110em);}
+#p20>.fi:nth-child(20)::after{content:var(--p20w19,"");}
+#p20>.fi:nth-child(21){transform:translate(9599em,130em);}
+#p20>.fi:nth-child(21)::after{content:var(--p20w20,"");}
+#p21>.fi:nth-child(1){transform:translate(1430em,200em);}
+#p21>.fi:nth-child(1)::after{content:var(--p21w0,"");}
+#p21>.fi:nth-child(2){transform:translate(665em,370em);}
+#p21>.fi:nth-child(2)::after{content:var(--p21w1,"");}
+#p21>.fi:nth-child(3){transform:translate(3369em,10em);}
+#p21>.fi:nth-child(3)::after{content:var(--p21w2,"");}
+#p21>.fi:nth-child(4){transform:translate(7339em,330em);}
+#p21>.fi:nth-child(4)::after{content:var(--p21w3,"");}
+#p21>.fi:nth-child(5){transform:translate(6285em,480em);}
+#p21>.fi:nth-child(5)::after{content:var(--p21w4,"");}
+#p21>.fi:nth-child(6){transform:translate(7936em,420em);}
+#p21>.fi:nth-child(6)::after{content:var(--p21w5,"");}
+#p21>.fi:nth-child(7){transform:translate(4061em,430em);}
+#p21>.fi:nth-child(7)::after{content:var(--p21w6,"");}
+#p21>.fi:nth-child(8){transform:translate(8635em,180em);}
+#p21>.fi:nth-child(8)::after{content:var(--p21w7,"");}
+#p21>.fi:nth-child(9){transform:translate(2899em,260em);}
+#p21>.fi:nth-child(9)::after{content:var(--p21w8,"");}
+#p21>.fi:nth-child(10){transform:translate(5131em,560em);}
+#p21>.fi:nth-child(10)::after{content:var(--p21w9,"");}
+#p21>.fi:nth-child(11){transform:translate(752em,440em);}
+#p21>.fi:nth-child(11)::after{content:var(--p21w10,"");}
+#p21>.fi:nth-child(12){transform:translate(2679em,410em);}
+#p21>.fi:nth-child(12)::after{content:var(--p21w11,"");}
+#p21>.fi:nth-child(13){transform:translate(576em,80em);}
+#p21>.fi:nth-child(13)::after{content:var(--p21w12,"");}
+#p21>.fi:nth-child(14){transform:translate(125em,460em);}
+#p21>.fi:nth-child(14)::after{content:var(--p21w13,"");}
+#p21>.fi:nth-child(15){transform:translate(569em,110em);}
+#p21>.fi:nth-child(15)::after{content:var(--p21w14,"");}
+#p21>.fi:nth-child(16){transform:translate(220em,530em);}
+#p21>.fi:nth-child(16)::after{content:var(--p21w15,"");}
+#p21>.fi:nth-child(17){transform:translate(8195em,450em);}
+#p21>.fi:nth-child(17)::after{content:var(--p21w16,"");}
+#p21>.fi:nth-child(18){transform:translate(1413em,150em);}
+#p21>.fi:nth-child(18)::after{content:var(--p21w17,"");}
+#p21>.fi:nth-child(19){transform:translate(6563em,550em);}
+#p21>.fi:nth-child(19)::after{content:var(--p21w18,"");}
+#p21>.fi:nth-child(20){transform:translate(7236em,320em);}
+#p21>.fi:nth-child(20)::after{content:var(--p21w19,"");}
+#p21>.fi:nth-child(21){transform:translate(9989em,510em);}
+#p21>.fi:nth-child(21)::after{content:var(--p21w20,"");}
+#p21>.fi:nth-child(22){transform:translate(497em,540em);}
+#p21>.fi:nth-child(22)::after{content:var(--p21w21,"");}
+#p21>.fi:nth-child(23){transform:translate(341em,230em);}
+#p21>.fi:nth-child(23)::after{content:var(--p21w22,"");}
+#p21>.fi:nth-child(24){transform:translate(5628em,340em);}
+#p21>.fi:nth-child(24)::after{content:var(--p21w23,"");}
+#p21>.fi:nth-child(25){transform:translate(9933em,300em);}
+#p21>.fi:nth-child(25)::after{content:var(--p21w24,"");}
+#p21>.fi:nth-child(26){transform:translate(8702em,70em);}
+#p21>.fi:nth-child(26)::after{content:var(--p21w25,"");}
+#p21>.fi:nth-child(27){transform:translate(6596em,570em);}
+#p21>.fi:nth-child(27)::after{content:var(--p21w26,"");}
+#p21>.fi:nth-child(28){transform:translate(8084em,50em);}
+#p21>.fi:nth-child(28)::after{content:var(--p21w27,"");}
+#p21>.fi:nth-child(29){transform:translate(4452em,170em);}
+#p21>.fi:nth-child(29)::after{content:var(--p21w28,"");}
+#p21>.fi:nth-child(30){transform:translate(4310em,290em);}
+#p21>.fi:nth-child(30)::after{content:var(--p21w29,"");}
+#p21>.fi:nth-child(31){transform:translate(7900em,190em);}
+#p21>.fi:nth-child(31)::after{content:var(--p21w30,"");}
+#p21>.fi:nth-child(32){transform:translate(9836em,520em);}
+#p21>.fi:nth-child(32)::after{content:var(--p21w31,"");}
+#p21>.fi:nth-child(33){transform:translate(8182em,270em);}
+#p21>.fi:nth-child(33)::after{content:var(--p21w32,"");}
+#p21>.fi:nth-child(34){transform:translate(6751em,360em);}
+#p21>.fi:nth-child(34)::after{content:var(--p21w33,"");}
+#p21>.fi:nth-child(35){transform:translate(8884em,220em);}
+#p21>.fi:nth-child(35)::after{content:var(--p21w34,"");}
+#p21>.fi:nth-child(36){transform:translate(6501em,20em);}
+#p21>.fi:nth-child(36)::after{content:var(--p21w35,"");}
+#p21>.fi:nth-child(37){transform:translate(5473em,280em);}
+#p21>.fi:nth-child(37)::after{content:var(--p21w36,"");}
+#p21>.fi:nth-child(38){transform:translate(1972em,30em);}
+#p21>.fi:nth-child(38)::after{content:var(--p21w37,"");}
+#p21>.fi:nth-child(39){transform:translate(9940em,140em);}
+#p21>.fi:nth-child(39)::after{content:var(--p21w38,"");}
+#p21>.fi:nth-child(40){transform:translate(6778em,350em);}
+#p21>.fi:nth-child(40)::after{content:var(--p21w39,"");}
+#p21>.fi:nth-child(41){transform:translate(5548em,500em);}
+#p21>.fi:nth-child(41)::after{content:var(--p21w40,"");}
+#p21>.fi:nth-child(42){transform:translate(3111em,120em);}
+#p21>.fi:nth-child(42)::after{content:var(--p21w41,"");}
+#p21>.fi:nth-child(43){transform:translate(9886em,100em);}
+#p21>.fi:nth-child(43)::after{content:var(--p21w42,"");}
+#p21>.fi:nth-child(44){transform:translate(2999em,580em);}
+#p21>.fi:nth-child(44)::after{content:var(--p21w43,"");}
+#p21>.fi:nth-child(45){transform:translate(6885em,210em);}
+#p21>.fi:nth-child(45)::after{content:var(--p21w44,"");}
+#p21>.fi:nth-child(46){transform:translate(4699em,390em);}
+#p21>.fi:nth-child(46)::after{content:var(--p21w45,"");}
+#p21>.fi:nth-child(47){transform:translate(2333em,90em);}
+#p21>.fi:nth-child(47)::after{content:var(--p21w46,"");}
+#p21>.fi:nth-child(48){transform:translate(6800em,400em);}
+#p21>.fi:nth-child(48)::after{content:var(--p21w47,"");}
+#p21>.fi:nth-child(49){transform:translate(7798em,380em);}
+#p21>.fi:nth-child(49)::after{content:var(--p21w48,"");}
+#p21>.fi:nth-child(50){transform:translate(5119em,40em);}
+#p21>.fi:nth-child(50)::after{content:var(--p21w49,"");}
+#p21>.fi:nth-child(51){transform:translate(7223em,490em);}
+#p21>.fi:nth-child(51)::after{content:var(--p21w50,"");}
+#p21>.fi:nth-child(52){transform:translate(4656em,60em);}
+#p21>.fi:nth-child(52)::after{content:var(--p21w51,"");}
+#p21>.fi:nth-child(53){transform:translate(7925em,130em);}
+#p21>.fi:nth-child(53)::after{content:var(--p21w52,"");}
+#p21>.fi:nth-child(54){transform:translate(55em,250em);}
+#p21>.fi:nth-child(54)::after{content:var(--p21w53,"");}
+#p21>.fi:nth-child(55){transform:translate(7378em,160em);}
+#p21>.fi:nth-child(55)::after{content:var(--p21w54,"");}
+#p21>.fi:nth-child(56){transform:translate(7119em,470em);}
+#p21>.fi:nth-child(56)::after{content:var(--p21w55,"");}
+#p21>.fi:nth-child(57){transform:translate(2855em,310em);}
+#p21>.fi:nth-child(57)::after{content:var(--p21w56,"");}
+#p21>.fi:nth-child(58){transform:translate(9524em,240em);}
+#p21>.fi:nth-child(58)::after{content:var(--p21w57,"");}
+#p22>.fi:nth-child(1){transform:translate(81em,40em);}
+#p22>.fi:nth-child(1)::after{content:var(--p22w0,"");}
+#p22>.fi:nth-child(2){transform:translate(8327em,90em);}
+#p22>.fi:nth-child(2)::after{content:var(--p22w1,"");}
+#p22>.fi:nth-child(3){transform:translate(8237em,80em);}
+#p22>.fi:nth-child(3)::after{content:var(--p22w2,"");}
+#p22>.fi:nth-child(4){transform:translate(1673em,20em);}
+#p22>.fi:nth-child(4)::after{content:var(--p22w3,"");}
+#p22>.fi:nth-child(5){transform:translate(6464em,50em);}
+#p22>.fi:nth-child(5)::after{content:var(--p22w4,"");}
+#p22>.fi:nth-child(6){transform:translate(4287em,30em);}
+#p22>.fi:nth-child(6)::after{content:var(--p22w5,"");}
+#p22>.fi:nth-child(7){transform:translate(5140em,10em);}
+#p22>.fi:nth-child(7)::after{content:var(--p22w6,"");}
+#p22>.fi:nth-child(8){transform:translate(1454em,70em);}
+#p22>.fi:nth-child(8)::after{content:var(--p22w7,"");}
+#p22>.fi:nth-child(9){transform:translate(1465em,60em);}
+#p22>.fi:nth-child(9)::after{content:var(--p22w8,"");}
+#p23>.fi:nth-child(1){transform:translate(8050em,30em);}
+#p23>.fi:nth-child(1)::after{content:var(--p23w0,"");}
+#p23>.fi:nth-child(2){transform:translate(4789em,70em);}
+#p23>.fi:nth-child(2)::after{content:var(--p23w1,"");}
+#p23>.fi:nth-child(3){transform:translate(9753em,50em);}
+#p23>.fi:nth-child(3)::after{content:var(--p23w2,"");}
+#p23>.fi:nth-child(4){transform:translate(8412em,60em);}
+#p23>.fi:nth-child(4)::after{content:var(--p23w3,"");}
+#p23>.fi:nth-child(5){transform:translate(892em,20em);}
+#p23>.fi:nth-child(5)::after{content:var(--p23w4,"");}
+#p23>.fi:nth-child(6){transform:translate(1375em,80em);}
+#p23>.fi:nth-child(6)::after{content:var(--p23w5,"");}
+#p23>.fi:nth-child(7){transform:translate(1566em,10em);}
+#p23>.fi:nth-child(7)::after{content:var(--p23w6,"");}
+#p23>.fi:nth-child(8){transform:translate(4401em,40em);}
+#p23>.fi:nth-child(8)::after{content:var(--p23w7,"");}
+#p24>.fi:nth-child(1){transform:translate(8933em,20em);}
+#p24>.fi:nth-child(1)::after{content:var(--p24w0,"");}
+#p24>.fi:nth-child(2){transform:translate(4877em,140em);}
+#p24>.fi:nth-child(2)::after{content:var(--p24w1,"");}
+#p24>.fi:nth-child(3){transform:translate(4089em,200em);}
+#p24>.fi:nth-child(3)::after{content:var(--p24w2,"");}
+#p24>.fi:nth-child(4){transform:translate(9410em,70em);}
+#p24>.fi:nth-child(4)::after{content:var(--p24w3,"");}
+#p24>.fi:nth-child(5){transform:translate(5426em,10em);}
+#p24>.fi:nth-child(5)::after{content:var(--p24w4,"");}
+#p24>.fi:nth-child(6){transform:translate(1495em,180em);}
+#p24>.fi:nth-child(6)::after{content:var(--p24w5,"");}
+#p24>.fi:nth-child(7){transform:translate(1263em,100em);}
+#p24>.fi:nth-child(7)::after{content:var(--p24w6,"");}
+#p24>.fi:nth-child(8){transform:translate(3381em,30em);}
+#p24>.fi:nth-child(8)::after{content:var(--p24w7,"");}
+#p24>.fi:nth-child(9){transform:translate(2590em,130em);}
+#p24>.fi:nth-child(9)::after{content:var(--p24w8,"");}
+#p24>.fi:nth-child(10){transform:translate(7330em,120em);}
+#p24>.fi:nth-child(10)::after{content:var(--p24w9,"");}
+#p24>.fi:nth-child(11){transform:translate(1977em,160em);}
+#p24>.fi:nth-child(11)::after{content:var(--p24w10,"");}
+#p24>.fi:nth-child(12){transform:translate(2302em,90em);}
+#p24>.fi:nth-child(12)::after{content:var(--p24w11,"");}
+#p24>.fi:nth-child(13){transform:translate(5610em,40em);}
+#p24>.fi:nth-child(13)::after{content:var(--p24w12,"");}
+#p24>.fi:nth-child(14){transform:translate(9616em,220em);}
+#p24>.fi:nth-child(14)::after{content:var(--p24w13,"");}
+#p24>.fi:nth-child(15){transform:translate(2696em,210em);}
+#p24>.fi:nth-child(15)::after{content:var(--p24w14,"");}
+#p24>.fi:nth-child(16){transform:translate(4064em,80em);}
+#p24>.fi:nth-child(16)::after{content:var(--p24w15,"");}
+#p24>.fi:nth-child(17){transform:translate(1955em,50em);}
+#p24>.fi:nth-child(17)::after{content:var(--p24w16,"");}
+#p24>.fi:nth-child(18){transform:translate(9244em,170em);}
+#p24>.fi:nth-child(18)::after{content:var(--p24w17,"");}
+#p24>.fi:nth-child(19){transform:translate(9889em,110em);}
+#p24>.fi:nth-child(19)::after{content:var(--p24w18,"");}
+#p24>.fi:nth-child(20){transform:translate(4225em,150em);}
+#p24>.fi:nth-child(20)::after{content:var(--p24w19,"");}
+#p24>.fi:nth-child(21){transform:translate(1565em,60em);}
+#p24>.fi:nth-child(21)::after{content:var(--p24w20,"");}
+#p24>.fi:nth-child(22){transform:translate(4108em,190em);}
+#p24>.fi:nth-child(22)::after{content:var(--p24w21,"");}
+#p25>.fi:nth-child(1){transform:translate(1183em,10em);}
+#p25>.fi:nth-child(1)::after{content:var(--p25w0,"");}
+#p26>.fi:nth-child(1){transform:translate(444em,70em);}
+#p26>.fi:nth-child(1)::after{content:var(--p26w0,"");}
+#p26>.fi:nth-child(2){transform:translate(8285em,120em);}
+#p26>.fi:nth-child(2)::after{content:var(--p26w1,"");}
+#p26>.fi:nth-child(3){transform:translate(635em,90em);}
+#p26>.fi:nth-child(3)::after{content:var(--p26w2,"");}
+#p26>.fi:nth-child(4){transform:translate(2492em,40em);}
+#p26>.fi:nth-child(4)::after{content:var(--p26w3,"");}
+#p26>.fi:nth-child(5){transform:translate(8197em,140em);}
+#p26>.fi:nth-child(5)::after{content:var(--p26w4,"");}
+#p26>.fi:nth-child(6){transform:translate(569em,10em);}
+#p26>.fi:nth-child(6)::after{content:var(--p26w5,"");}
+#p26>.fi:nth-child(7){transform:translate(574em,100em);}
+#p26>.fi:nth-child(7)::after{content:var(--p26w6,"");}
+#p26>.fi:nth-child(8){transform:translate(4949em,60em);}
+#p26>.fi:nth-child(8)::after{content:var(--p26w7,"");}
+#p26>.fi:nth-child(9){transform:translate(1909em,50em);}
+#p26>.fi:nth-child(9)::after{content:var(--p26w8,"");}
+#p26>.fi:nth-child(10){transform:translate(1031em,20em);}
+#p26>.fi:nth-child(10)::after{content:var(--p26w9,"");}
+#p26>.fi:nth-child(11){transform:translate(7028em,130em);}
+#p26>.fi:nth-child(11)::after{content:var(--p26w10,"");}
+#p26>.fi:nth-child(12){transform:translate(136em,110em);}
+#p26>.fi:nth-child(12)::after{content:var(--p26w11,"");}
+#p26>.fi:nth-child(13){transform:translate(7317em,80em);}
+#p26>.fi:nth-child(13)::after{content:var(--p26w12,"");}
+#p26>.fi:nth-child(14){transform:translate(7006em,30em);}
+#p26>.fi:nth-child(14)::after{content:var(--p26w13,"");}
+#p27>.fi:nth-child(1){transform:translate(6206em,100em);}
+#p27>.fi:nth-child(1)::after{content:var(--p27w0,"");}
+#p27>.fi:nth-child(2){transform:translate(6936em,110em);}
+#p27>.fi:nth-child(2)::after{content:var(--p27w1,"");}
+#p27>.fi:nth-child(3){transform:translate(2979em,140em);}
+#p27>.fi:nth-child(3)::after{content:var(--p27w2,"");}
+#p27>.fi:nth-child(4){transform:translate(280em,150em);}
+#p27>.fi:nth-child(4)::after{content:var(--p27w3,"");}
+#p27>.fi:nth-child(5){transform:translate(8401em,40em);}
+#p27>.fi:nth-child(5)::after{content:var(--p27w4,"");}
+#p27>.fi:nth-child(6){transform:translate(5837em,130em);}
+#p27>.fi:nth-child(6)::after{content:var(--p27w5,"");}
+#p27>.fi:nth-child(7){transform:translate(6205em,120em);}
+#p27>.fi:nth-child(7)::after{content:var(--p27w6,"");}
+#p27>.fi:nth-child(8){transform:translate(8041em,30em);}
+#p27>.fi:nth-child(8)::after{content:var(--p27w7,"");}
+#p27>.fi:nth-child(9){transform:translate(6492em,170em);}
+#p27>.fi:nth-child(9)::after{content:var(--p27w8,"");}
+#p27>.fi:nth-child(10){transform:translate(313em,180em);}
+#p27>.fi:nth-child(10)::after{content:var(--p27w9,"");}
+#p27>.fi:nth-child(11){transform:translate(8974em,160em);}
+#p27>.fi:nth-child(11)::after{content:var(--p27w10,"");}
+#p27>.fi:nth-child(12){transform:translate(7699em,90em);}
+#p27>.fi:nth-child(12)::after{content:var(--p27w11,"");}
+#p27>.fi:nth-child(13){transform:translate(3088em,10em);}
+#p27>.fi:nth-child(13)::after{content:var(--p27w12,"");}
+#p27>.fi:nth-child(14){transform:translate(8794em,190em);}
+#p27>.fi:nth-child(14)::after{content:var(--p27w13,"");}
+#p27>.fi:nth-child(15){transform:translate(7975em,70em);}
+#p27>.fi:nth-child(15)::after{content:var(--p27w14,"");}
+#p27>.fi:nth-child(16){transform:translate(6242em,80em);}
+#p27>.fi:nth-child(16)::after{content:var(--p27w15,"");}
+#p27>.fi:nth-child(17){transform:translate(5548em,50em);}
+#p27>.fi:nth-child(17)::after{content:var(--p27w16,"");}
+#p27>.fi:nth-child(18){transform:translate(8547em,60em);}
+#p27>.fi:nth-child(18)::after{content:var(--p27w17,"");}
+#p27>.fi:nth-child(19){transform:translate(201em,20em);}
+#p27>.fi:nth-child(19)::after{content:var(--p27w18,"");}
+#p28>.fi:nth-child(1){transform:translate(6160em,310em);}
+#p28>.fi:nth-child(1)::after{content:var(--p28w0,"");}
+#p28>.fi:nth-child(2){transform:translate(8888em,170em);}
+#p28>.fi:nth-child(2)::after{content:var(--p28w1,"");}
+#p28>.fi:nth-child(3){transform:translate(8697em,330em);}
+#p28>.fi:nth-child(3)::after{content:var(--p28w2,"");}
+#p28>.fi:nth-child(4){transform:translate(204em,160em);}
+#p28>.fi:nth-child(4)::after{content:var(--p28w3,"");}
+#p28>.fi:nth-child(5){transform:translate(5656em,240em);}
+#p28>.fi:nth-child(5)::after{content:var(--p28w4,"");}
+#p28>.fi:nth-child(6){transform:translate(2095em,200em);}
+#p28>.fi:nth-child(6)::after{content:var(--p28w5,"");}
+#p28>.fi:nth-child(7){transform:translate(6311em,290em);}
+#p28>.fi:nth-child(7)::after{content:var(--p28w6,"");}
+#p28>.fi:nth-child(8){transform:translate(2014em,320em);}
+#p28>.fi:nth-child(8)::after{content:var(--p28w7,"");}
+#p28>.fi:nth-child(9){transform:translate(7506em,70em);}
+#p28>.fi:nth-child(9)::after{content:var(--p28w8,"");}
+#p28>.fi:nth-child(10){transform:translate(5958em,150em);}
+#p28>.fi:nth-child(10)::after{content:var(--p28w9,"");}
+#p28>.fi:nth-child(11){transform:translate(3065em,100em);}
+#p28>.fi:nth-child(11)::after{content:var(--p28w10,"");}
+#p28>.fi:nth-child(12){transform:translate(8162em,10em);}
+#p28>.fi:nth-child(12)::after{content:var(--p28w11,"");}
+#p28>.fi:nth-child(13){transform:translate(2171em,140em);}
+#p28>.fi:nth-child(13)::after{content:var(--p28w12,"");}
+#p28>.fi:nth-child(14){transform:translate(9942em,270em);}
+#p28>.fi:nth-child(14)::after{content:var(--p28w13,"");}
+#p28>.fi:nth-child(15){transform:translate(6959em,230em);}
+#p28>.fi:nth-child(15)::after{content:var(--p28w14,"");}
+#p28>.fi:nth-child(16){transform:translate(6850em,60em);}
+#p28>.fi:nth-child(16)::after{content:var(--p28w15,"");}
+#p28>.fi:nth-child(17){transform:translate(5015em,180em);}
+#p28>.fi:nth-child(17)::after{content:var(--p28w16,"");}
+#p28>.fi:nth-child(18){transform:translate(4170em,40em);}
+#p28>.fi:nth-child(18)::after{content:var(--p28w17,"");}
+#p28>.fi:nth-child(19){transform:translate(2069em,50em);}
+#p28>.fi:nth-child(19)::after{content:var(--p28w18,"");}
+#p28>.fi:nth-child(20){transform:translate(3590em,280em);}
+#p28>.fi:nth-child(20)::after{content:var(--p28w19,"");}
+#p28>.fi:nth-child(21){transform:translate(281em,120em);}
+#p28>.fi:nth-child(21)::after{content:var(--p28w20,"");}
+#p28>.fi:nth-child(22){transform:translate(4202em,260em);}
+#p28>.fi:nth-child(22)::after{content:var(--p28w21,"");}
+#p28>.fi:nth-child(23){transform:translate(6287em,80em);}
+#p28>.fi:nth-child(23)::after{content:var(--p28w22,"");}
+#p28>.fi:nth-child(24){transform:translate(7377em,110em);}
+#p28>.fi:nth-child(24)::after{content:var(--p28w23,"");}
+#p28>.fi:nth-child(25){transform:translate(4902em,220em);}
+#p28>.fi:nth-child(25)::after{content:var(--p28w24,"");}
+#p28>.fi:nth-child(26){transform:translate(9031em,130em);}
+#p28>.fi:nth-child(26)::after{content:var(--p28w25,"");}
+#p28>.fi:nth-child(27){transform:translate(8862em,90em);}
+#p28>.fi:nth-child(27)::after{content:var(--p28w26,"");}
+#p28>.fi:nth-child(28){transform:translate(8203em,300em);}
+#p28>.fi:nth-child(28)::after{content:var(--p28w27,"");}
+#p28>.fi:nth-child(29){transform:translate(826em,190em);}
+#p28>.fi:nth-child(29)::after{content:var(--p28w28,"");}
+#p28>.fi:nth-child(30){transform:translate(9286em,30em);}
+#p28>.fi:nth-child(30)::after{content:var(--p28w29,"");}
+#p28>.fi:nth-child(31){transform:translate(8628em,250em);}
+#p28>.fi:nth-child(31)::after{content:var(--p28w30,"");}
+#p28>.fi:nth-child(32){transform:translate(8362em,210em);}
+#p28>.fi:nth-child(32)::after{content:var(--p28w31,"");}
+#p28>.fi:nth-child(33){transform:translate(6237em,20em);}
+#p28>.fi:nth-child(33)::after{content:var(--p28w32,"");}
+#p29>.fi:nth-child(1){transform:translate(8409em,410em);}
+#p29>.fi:nth-child(1)::after{content:var(--p29w0,"");}
+#p29>.fi:nth-child(2){transform:translate(1925em,260em);}
+#p29>.fi:nth-child(2)::after{content:var(--p29w1,"");}
+#p29>.fi:nth-child(3){transform:translate(2164em,400em);}
+#p29>.fi:nth-child(3)::after{content:var(--p29w2,"");}
+#p29>.fi:nth-child(4){transform:translate(4349em,170em);}
+#p29>.fi:nth-child(4)::after{content:var(--p29w3,"");}
+#p29>.fi:nth-child(5){transform:translate(5441em,100em);}
+#p29>.fi:nth-child(5)::after{content:var(--p29w4,"");}
+#p29>.fi:nth-child(6){transform:translate(4244em,130em);}
+#p29>.fi:nth-child(6)::after{content:var(--p29w5,"");}
+#p29>.fi:nth-child(7){transform:translate(2355em,160em);}
+#p29>.fi:nth-child(7)::after{content:var(--p29w6,"");}
+#p29>.fi:nth-child(8){transform:translate(7956em,220em);}
+#p29>.fi:nth-child(8)::after{content:var(--p29w7,"");}
+#p29>.fi:nth-child(9){transform:translate(4823em,320em);}
+#p29>.fi:nth-child(9)::after{content:var(--p29w8,"");}
+#p29>.fi:nth-child(10){transform:translate(9883em,50em);}
+#p29>.fi:nth-child(10)::after{content:var(--p29w9,"");}
+#p29>.fi:nth-child(11){transform:translate(7890em,110em);}
+#p29>.fi:nth-child(11)::after{content:var(--p29w10,"");}
+#p29>.fi:nth-child(12){transform:translate(5673em,350em);}
+#p29>.fi:nth-child(12)::after{content:var(--p29w11,"");}
+#p29>.fi:nth-child(13){transform:translate(8060em,210em);}
+#p29>.fi:nth-child(13)::after{content:var(--p29w12,"");}
+#p29>.fi:nth-child(14){transform:translate(6107em,150em);}
+#p29>.fi:nth-child(14)::after{content:var(--p29w13,"");}
+#p29>.fi:nth-child(15){transform:translate(1727em,360em);}
+#p29>.fi:nth-child(15)::after{content:var(--p29w14,"");}
+#p29>.fi:nth-child(16){transform:translate(6145em,200em);}
+#p29>.fi:nth-child(16)::after{content:var(--p29w15,"");}
+#p29>.fi:nth-child(17){transform:translate(3698em,290em);}
+#p29>.fi:nth-child(17)::after{content:var(--p29w16,"");}
+#p29>.fi:nth-child(18){transform:translate(7123em,310em);}
+#p29>.fi:nth-child(18)::after{content:var(--p29w17,"");}
+#p29>.fi:nth-child(19){transform:translate(6719em,390em);}
+#p29>.fi:nth-child(19)::after{content:var(--p29w18,"");}
+#p29>.fi:nth-child(20){transform:translate(4931em,250em);}
+#p29>.fi:nth-child(20)::after{content:var(--p29w19,"");}
+#p29>.fi:nth-child(21){transform:translate(8258em,180em);}
+#p29>.fi:nth-child(21)::after{content:var(--p29w20,"");}
+#p29>.fi:nth-child(22){transform:translate(4764em,10em);}
+#p29>.fi:nth-child(22)::after{content:var(--p29w21,"");}
+#p29>.fi:nth-child(23){transform:translate(8245em,240em);}
+#p29>.fi:nth-child(23)::after{content:var(--p29w22,"");}
+#p29>.fi:nth-child(24){transform:translate(5518em,270em);}
+#p29>.fi:nth-child(24)::after{content:var(--p29w23,"");}
+#p29>.fi:nth-child(25){transform:translate(9678em,60em);}
+#p29>.fi:nth-child(25)::after{content:var(--p29w24,"");}
+#p29>.fi:nth-child(26){transform:translate(8221em,120em);}
+#p29>.fi:nth-child(26)::after{content:var(--p29w25,"");}
+#p29>.fi:nth-child(27){transform:translate(4966em,70em);}
+#p29>.fi:nth-child(27)::after{content:var(--p29w26,"");}
+#p29>.fi:nth-child(28){transform:translate(1770em,140em);}
+#p29>.fi:nth-child(28)::after{content:var(--p29w27,"");}
+#p29>.fi:nth-child(29){transform:translate(2648em,300em);}
+#p29>.fi:nth-child(29)::after{content:var(--p29w28,"");}
+#p29>.fi:nth-child(30){transform:translate(8978em,380em);}
+#p29>.fi:nth-child(30)::after{content:var(--p29w29,"");}
+#p29>.fi:nth-child(31){transform:translate(8956em,330em);}
+#p29>.fi:nth-child(31)::after{content:var(--p29w30,"");}
+#p29>.fi:nth-child(32){transform:translate(3325em,40em);}
+#p29>.fi:nth-child(32)::after{content:var(--p29w31,"");}
+#p29>.fi:nth-child(33){transform:translate(7237em,90em);}
+#p29>.fi:nth-child(33)::after{content:var(--p29w32,"");}
+#p29>.fi:nth-child(34){transform:translate(8471em,370em);}
+#p29>.fi:nth-child(34)::after{content:var(--p29w33,"");}
+#p29>.fi:nth-child(35){transform:translate(4729em,190em);}
+#p29>.fi:nth-child(35)::after{content:var(--p29w34,"");}
+#p29>.fi:nth-child(36){transform:translate(7425em,80em);}
+#p29>.fi:nth-child(36)::after{content:var(--p29w35,"");}
+#p29>.fi:nth-child(37){transform:translate(7465em,340em);}
+#p29>.fi:nth-child(37)::after{content:var(--p29w36,"");}
+#p29>.fi:nth-child(38){transform:translate(8215em,230em);}
+#p29>.fi:nth-child(38)::after{content:var(--p29w37,"");}
+#p29>.fi:nth-child(39){transform:translate(6323em,280em);}
+#p29>.fi:nth-child(39)::after{content:var(--p29w38,"");}
+#p29>.fi:nth-child(40){transform:translate(2269em,30em);}
+#p29>.fi:nth-child(40)::after{content:var(--p29w39,"");}
+#p29>.fi:nth-child(41){transform:translate(9744em,20em);}
+#p29>.fi:nth-child(41)::after{content:var(--p29w40,"");}
+#p30>.fi:nth-child(1){transform:translate(5898em,60em);}
+#p30>.fi:nth-child(1)::after{content:var(--p30w0,"");}
+#p30>.fi:nth-child(2){transform:translate(1883em,150em);}
+#p30>.fi:nth-child(2)::after{content:var(--p30w1,"");}
+#p30>.fi:nth-child(3){transform:translate(1804em,180em);}
+#p30>.fi:nth-child(3)::after{content:var(--p30w2,"");}
+#p30>.fi:nth-child(4){transform:translate(802em,20em);}
+#p30>.fi:nth-child(4)::after{content:var(--p30w3,"");}
+#p30>.fi:nth-child(5){transform:translate(2989em,230em);}
+#p30>.fi:nth-child(5)::after{content:var(--p30w4,"");}
+#p30>.fi:nth-child(6){transform:translate(1980em,110em);}
+#p30>.fi:nth-child(6)::after{content:var(--p30w5,"");}
+#p30>.fi:nth-child(7){transform:translate(6695em,40em);}
+#p30>.fi:nth-child(7)::after{content:var(--p30w6,"");}
+#p30>.fi:nth-child(8){transform:translate(8778em,80em);}
+#p30>.fi:nth-child(8)::after{content:var(--p30w7,"");}
+#p30>.fi:nth-child(9){transform:translate(1266em,30em);}
+#p30>.fi:nth-child(9)::after{content:var(--p30w8,"");}
+#p30>.fi:nth-child(10){transform:translate(8921em,200em);}
+#p30>.fi:nth-child(10)::after{content:var(--p30w9,"");}
+#p30>.fi:nth-child(11){transform:translate(3744em,130em);}
+#p30>.fi:nth-child(11)::after{content:var(--p30w10,"");}
+#p30>.fi:nth-child(12){transform:translate(7682em,120em);}
+#p30>.fi:nth-child(12)::after{content:var(--p30w11,"");}
+#p30>.fi:nth-child(13){transform:translate(5178em,10em);}
+#p30>.fi:nth-child(13)::after{content:var(--p30w12,"");}
+#p30>.fi:nth-child(14){transform:translate(7379em,160em);}
+#p30>.fi:nth-child(14)::after{content:var(--p30w13,"");}
+#p30>.fi:nth-child(15){transform:translate(2273em,170em);}
+#p30>.fi:nth-child(15)::after{content:var(--p30w14,"");}
+#p30>.fi:nth-child(16){transform:translate(4772em,190em);}
+#p30>.fi:nth-child(16)::after{content:var(--p30w15,"");}
+#p30>.fi:nth-child(17){transform:translate(4174em,70em);}
+#p30>.fi:nth-child(17)::after{content:var(--p30w16,"");}
+#p30>.fi:nth-child(18){transform:translate(8093em,90em);}
+#p30>.fi:nth-child(18)::after{content:var(--p30w17,"");}
+#p30>.fi:nth-child(19){transform:translate(7994em,210em);}
+#p30>.fi:nth-child(19)::after{content:var(--p30w18,"");}
+#p30>.fi:nth-child(20){transform:translate(6998em,140em);}
+#p30>.fi:nth-child(20)::after{content:var(--p30w19,"");}
+#p30>.fi:nth-child(21){transform:translate(6348em,50em);}
+#p30>.fi:nth-child(21)::after{content:var(--p30w20,"");}
+#p30>.fi:nth-child(22){transform:translate(1191em,100em);}
+#p30>.fi:nth-child(22)::after{content:var(--p30w21,"");}
+#p30>.fi:nth-child(23){transform:translate(6611em,220em);}
+#p30>.fi:nth-child(23)::after{content:var(--p30w22,"");}
+#p31>.fi:nth-child(1){transform:translate(5543em,40em);}
+#p31>.fi:nth-child(1)::after{content:var(--p31w0,"");}
+#p31>.fi:nth-child(2){transform:translate(6087em,110em);}
+#p31>.fi:nth-child(2)::after{content:var(--p31w1,"");}
+#p31>.fi:nth-child(3){transform:translate(5375em,150em);}
+#p31>.fi:nth-child(3)::after{content:var(--p31w2,"");}
+#p31>.fi:nth-child(4){transform:translate(4925em,200em);}
+#p31>.fi:nth-child(4)::after{content:var(--p31w3,"");}
+#p31>.fi:nth-child(5){transform:translate(4882em,140em);}
+#p31>.fi:nth-child(5)::after{content:var(--p31w4,"");}
+#p31>.fi:nth-child(6){transform:translate(963em,210em);}
+#p31>.fi:nth-child(6)::after{content:var(--p31w5,"");}
+#p31>.fi:nth-child(7){transform:translate(5775em,130em);}
+#p31>.fi:nth-child(7)::after{content:var(--p31w6,"");}
+#p31>.fi:nth-child(8){transform:translate(148em,90em);}
+#p31>.fi:nth-child(8)::after{content:var(--p31w7,"");}
+#p31>.fi:nth-child(9){transform:translate(9408em,160em);}
+#p31>.fi:nth-child(9)::after{content:var(--p31w8,"");}
+#p31>.fi:nth-child(10){transform:translate(6976em,100em);}
+#p31>.fi:nth-child(10)::after{content:var(--p31w9,"");}
+#p31>.fi:nth-child(11){transform:translate(7756em,30em);}
+#p31>.fi:nth-child(11)::after{content:var(--p31w10,"");}
+#p31>.fi:nth-child(12){transform:translate(5928em,190em);}
+#p31>.fi:nth-child(12)::after{content:var(--p31w11,"");}
+#p31>.fi:nth-child(13){transform:translate(6673em,80em);}
+#p31>.fi:nth-child(13)::after{content:var(--p31w12,"");}
+#p31>.fi:nth-child(14){transform:translate(832em,20em);}
+#p31>.fi:nth-child(14)::after{content:var(--p31w13,"");}
+#p31>.fi:nth-child(15){transform:translate(4737em,170em);}
+#p31>.fi:nth-child(15)::after{content:var(--p31w14,"");}
+#p31>.fi:nth-child(16){transform:translate(8430em,50em);}
+#p31>.fi:nth-child(16)::after{content:var(--p31w15,"");}
+#p31>.fi:nth-child(17){transform:translate(4257em,10em);}
+#p31>.fi:nth-child(17)::after{content:var(--p31w16,"");}
+#p31>.fi:nth-child(18){transform:translate(2619em,60em);}
+#p31>.fi:nth-child(18)::after{content:var(--p31w17,"");}
+#p31>.fi:nth-child(19){transform:translate(7185em,70em);}
+#p31>.fi:nth-child(19)::after{content:var(--p31w18,"");}
+#p31>.fi:nth-child(20){transform:translate(9457em,180em);}
+#p31>.fi:nth-child(20)::after{content:var(--p31w19,"");}
+#p31>.fi:nth-child(21){transform:translate(4509em,120em);}
+#p31>.fi:nth-child(21)::after{content:var(--p31w20,"");}
+#p32>.fi:nth-child(1){transform:translate(3677em,30em);}
+#p32>.fi:nth-child(1)::after{content:var(--p32w0,"");}
+#p32>.fi:nth-child(2){transform:translate(2813em,280em);}
+#p32>.fi:nth-child(2)::after{content:var(--p32w1,"");}
+#p32>.fi:nth-child(3){transform:translate(4279em,120em);}
+#p32>.fi:nth-child(3)::after{content:var(--p32w2,"");}
+#p32>.fi:nth-child(4){transform:translate(2613em,240em);}
+#p32>.fi:nth-child(4)::after{content:var(--p32w3,"");}
+#p32>.fi:nth-child(5){transform:translate(2095em,260em);}
+#p32>.fi:nth-child(5)::after{content:var(--p32w4,"");}
+#p32>.fi:nth-child(6){transform:translate(6367em,60em);}
+#p32>.fi:nth-child(6)::after{content:var(--p32w5,"");}
+#p32>.fi:nth-child(7){transform:translate(5311em,140em);}
+#p32>.fi:nth-child(7)::after{content:var(--p32w6,"");}
+#p32>.fi:nth-child(8){transform:translate(1078em,190em);}
+#p32>.fi:nth-child(8)::after{content:var(--p32w7,"");}
+#p32>.fi:nth-child(9){transform:translate(7831em,230em);}
+#p32>.fi:nth-child(9)::after{content:var(--p32w8,"");}
+#p32>.fi:nth-child(10){transform:translate(348em,160em);}
+#p32>.fi:nth-child(10)::after{content:var(--p32w9,"");}
+#p32>.fi:nth-child(11){transform:translate(7120em,210em);}
+#p32>.fi:nth-child(11)::after{content:var(--p32w10,"");}
+#p32>.fi:nth-child(12){transform:translate(3720em,40em);}
+#p32>.fi:nth-child(12)::after{content:var(--p32w11,"");}
+#p32>.fi:nth-child(13){transform:translate(3193em,200em);}
+#p32>.fi:nth-child(13)::after{content:var(--p32w12,"");}
+#p32>.fi:nth-child(14){transform:translate(9280em,20em);}
+#p32>.fi:nth-child(14)::after{content:var(--p32w13,"");}
+#p32>.fi:nth-child(15){transform:translate(5088em,80em);}
+#p32>.fi:nth-child(15)::after{content:var(--p32w14,"");}
+#p32>.fi:nth-child(16){transform:translate(2979em,130em);}
+#p32>.fi:nth-child(16)::after{content:var(--p32w15,"");}
+#p32>.fi:nth-child(17){transform:translate(7370em,220em);}
+#p32>.fi:nth-child(17)::after{content:var(--p32w16,"");}
+#p32>.fi:nth-child(18){transform:translate(6999em,150em);}
+#p32>.fi:nth-child(18)::after{content:var(--p32w17,"");}
+#p32>.fi:nth-child(19){transform:translate(6929em,50em);}
+#p32>.fi:nth-child(19)::after{content:var(--p32w18,"");}
+#p32>.fi:nth-child(20){transform:translate(4605em,90em);}
+#p32>.fi:nth-child(20)::after{content:var(--p32w19,"");}
+#p32>.fi:nth-child(21){transform:translate(8619em,180em);}
+#p32>.fi:nth-child(21)::after{content:var(--p32w20,"");}
+#p32>.fi:nth-child(22){transform:translate(3984em,170em);}
+#p32>.fi:nth-child(22)::after{content:var(--p32w21,"");}
+#p32>.fi:nth-child(23){transform:translate(602em,100em);}
+#p32>.fi:nth-child(23)::after{content:var(--p32w22,"");}
+#p32>.fi:nth-child(24){transform:translate(9328em,10em);}
+#p32>.fi:nth-child(24)::after{content:var(--p32w23,"");}
+#p32>.fi:nth-child(25){transform:translate(8062em,270em);}
+#p32>.fi:nth-child(25)::after{content:var(--p32w24,"");}
+#p32>.fi:nth-child(26){transform:translate(6460em,70em);}
+#p32>.fi:nth-child(26)::after{content:var(--p32w25,"");}
+#p32>.fi:nth-child(27){transform:translate(1147em,110em);}
+#p32>.fi:nth-child(27)::after{content:var(--p32w26,"");}
+#p32>.fi:nth-child(28){transform:translate(1224em,250em);}
+#p32>.fi:nth-child(28)::after{content:var(--p32w27,"");}
+#p33>.fi:nth-child(1){transform:translate(3477em,100em);}
+#p33>.fi:nth-child(1)::after{content:var(--p33w0,"");}
+#p33>.fi:nth-child(2){transform:translate(2589em,40em);}
+#p33>.fi:nth-child(2)::after{content:var(--p33w1,"");}
+#p33>.fi:nth-child(3){transform:translate(5167em,90em);}
+#p33>.fi:nth-child(3)::after{content:var(--p33w2,"");}
+#p33>.fi:nth-child(4){transform:translate(9882em,50em);}
+#p33>.fi:nth-child(4)::after{content:var(--p33w3,"");}
+#p33>.fi:nth-child(5){transform:translate(8920em,120em);}
+#p33>.fi:nth-child(5)::after{content:var(--p33w4,"");}
+#p33>.fi:nth-child(6){transform:translate(9122em,30em);}
+#p33>.fi:nth-child(6)::after{content:var(--p33w5,"");}
+#p33>.fi:nth-child(7){transform:translate(5689em,10em);}
+#p33>.fi:nth-child(7)::after{content:var(--p33w6,"");}
+#p33>.fi:nth-child(8){transform:translate(3678em,110em);}
+#p33>.fi:nth-child(8)::after{content:var(--p33w7,"");}
+#p33>.fi:nth-child(9){transform:translate(5220em,60em);}
+#p33>.fi:nth-child(9)::after{content:var(--p33w8,"");}
+#p33>.fi:nth-child(10){transform:translate(9291em,20em);}
+#p33>.fi:nth-child(10)::after{content:var(--p33w9,"");}
+#p33>.fi:nth-child(11){transform:translate(3290em,80em);}
+#p33>.fi:nth-child(11)::after{content:var(--p33w10,"");}
+#p33>.fi:nth-child(12){transform:translate(8194em,150em);}
+#p33>.fi:nth-child(12)::after{content:var(--p33w11,"");}
+#p33>.fi:nth-child(13){transform:translate(7605em,140em);}
+#p33>.fi:nth-child(13)::after{content:var(--p33w12,"");}
+#p33>.fi:nth-child(14){transform:translate(4852em,70em);}
+#p33>.fi:nth-child(14)::after{content:var(--p33w13,"");}
+#p33>.fi:nth-child(15){transform:translate(8105em,130em);}
+#p33>.fi:nth-child(15)::after{content:var(--p33w14,"");}
+</style>
+<article>
+<h1 id="introduction">Introduction</h1>
+<p id="p0" class="scramble-box" aria-hidden="true"><span class="fi" s="1" wi="0">of </span><span class="fi" s="2" wi="1">programming </span><span class="fi" s="1" wi="2">a </span><span class="fi" s="2" wi="3">any </span><span class="fi" s="2" wi="4">invoked </span><span class="fi" s="1" wi="5">produce </span><span class="fi" s="0" wi="6">the </span><span class="fi" s="2" wi="7">and </span><span class="fi" s="1" wi="8">of </span><span class="fi" s="2" wi="9">language, </span><span class="fi" s="1" wi="10">the </span><span class="fi" s="1" wi="11">accept </span><span class="fi" s="1" wi="12">the </span><span class="fi" s="1" wi="13">altered </span><span class="fi" s="0" wi="14">supported </span><span class="fi" s="0" wi="15">between </span><span class="fi" s="0" wi="16">(AST) </span><span class="fi" s="0" wi="17">abstract </span><span class="fi" s="1" wi="18">AST. </span><span class="fi" s="0" wi="19">tree </span><span class="fi" s="0" wi="20">to </span><span class="fi" s="1" wi="21">and </span><span class="fi" s="2" wi="22">using </span><span class="fi" s="1" wi="23">AST </span><span class="fi" s="0" wi="24">and </span><span class="fi" s="2" wi="25">pandoc </span><span class="fi" s="0" wi="26">syntax </span><span class="fi" s="2" wi="27">from </span><span class="fi" s="2" wi="28">be </span><span class="fi" s="0" wi="29">the </span><span class="fi" s="1" wi="30">representation </span><span class="fi" s="0" wi="31">pandoc </span><span class="fi" s="0" wi="32">Pandoc </span><span class="fi" s="0" wi="33">which </span><span class="fi" s="0" wi="34">the </span><span class="fi" s="2" wi="35">option. </span><span class="fi" s="2" wi="36">may </span><span class="fi" s="2" wi="37">in </span><span class="fi" s="1" wi="38">filters </span><span class="fi" s="2" wi="39">They </span><span class="fi" s="0" wi="40">phase. </span><span class="fi" s="0" wi="41">filters, </span><span class="fi" s="1" wi="42">an </span><span class="fi" s="0" wi="43">has </span><span class="fi" s="1" wi="44">representation </span><span class="fi" s="0" wi="45">allow </span><span class="fi" s="1" wi="46">JSON </span><span class="fi" s="2" wi="47">--filter </span><span class="fi" s="1" wi="48">Traditional </span><span class="fi" s="2" wi="49">the </span><span class="fi" s="1" wi="50">pandoc </span><span class="fi" s="1" wi="51">pandoc </span><span class="fi" s="0" wi="52">long </span><span class="fi" s="2" wi="53">written </span><span class="fi" s="1" wi="54">JSON </span><span class="fi" s="0" wi="55">writing </span><span class="fi" s="0" wi="56">manipulated </span><span class="fi" s="0" wi="57">parsing </span><span class="fi" s="0" wi="58">be </span></p><p id="p0sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p1" class="scramble-box" aria-hidden="true"><span class="fi" s="7" wi="0">be </span><span class="fi" s="6" wi="1">programming </span><span class="fi" s="5" wi="2">filter </span><span class="fi" s="3" wi="3">couple </span><span class="fi" s="7" wi="4">by </span><span class="fi" s="7" wi="5">pandoc </span><span class="fi" s="7" wi="6">anyone </span><span class="fi" s="6" wi="7">well </span><span class="fi" s="3" wi="8">filters </span><span class="fi" s="6" wi="9">form. </span><span class="fi" s="7" wi="10">filter </span><span class="fi" s="3" wi="11">of </span><span class="fi" s="4" wi="12">it </span><span class="fi" s="3" wi="13">traditional </span><span class="fi" s="6" wi="14">as </span><span class="fi" s="6" wi="15">manipulating </span><span class="fi" s="7" wi="16">version </span><span class="fi" s="5" wi="17">user’s </span><span class="fi" s="7" wi="18">of </span><span class="fi" s="6" wi="19">library </span><span class="fi" s="6" wi="20">a </span><span class="fi" s="4" wi="21">stdout </span><span class="fi" s="3" wi="22">Although </span><span class="fi" s="7" wi="23">the </span><span class="fi" s="6" wi="24">AST </span><span class="fi" s="7" wi="25">One </span><span class="fi" s="6" wi="26">available, </span><span class="fi" s="7" wi="27">a </span><span class="fi" s="6" wi="28">filter </span><span class="fi" s="4" wi="29">there </span><span class="fi" s="4" wi="30">JSON </span><span class="fi" s="5" wi="31">on </span><span class="fi" s="4" wi="32">(twice, </span><span class="fi" s="6" wi="33">for </span><span class="fi" s="4" wi="34">of </span><span class="fi" s="4" wi="35">in </span><span class="fi" s="5" wi="36">details </span><span class="fi" s="6" wi="37">A </span><span class="fi" s="7" wi="38">that </span><span class="fi" s="6" wi="39">the </span><span class="fi" s="4" wi="40">side </span><span class="fi" s="6" wi="41">interpreter </span><span class="fi" s="4" wi="42">reading </span><span class="fi" s="5" wi="43">whether </span><span class="fi" s="6" wi="44">an </span><span class="fi" s="3" wi="45">they </span><span class="fi" s="4" wi="46">the </span><span class="fi" s="6" wi="47">as </span><span class="fi" s="5" wi="48">of </span><span class="fi" s="7" wi="49">simply </span><span class="fi" s="7" wi="50">used </span><span class="fi" s="7" wi="51">has </span><span class="fi" s="6" wi="52">pandoc </span><span class="fi" s="3" wi="53">very </span><span class="fi" s="4" wi="54">is </span><span class="fi" s="5" wi="55">work </span><span class="fi" s="6" wi="56">may </span><span class="fi" s="6" wi="57">a </span><span class="fi" s="3" wi="58">are </span><span class="fi" s="7" wi="59">provide </span><span class="fi" s="3" wi="60">flexible, </span><span class="fi" s="4" wi="61">stdin </span><span class="fi" s="6" wi="62">in </span><span class="fi" s="5" wi="63">will </span><span class="fi" s="4" wi="64">and </span><span class="fi" s="4" wi="65">on </span><span class="fi" s="5" wi="66">Second, </span><span class="fi" s="7" wi="67">who </span><span class="fi" s="4" wi="68">from </span><span class="fi" s="3" wi="69">have </span><span class="fi" s="6" wi="70">for </span><span class="fi" s="4" wi="71">once </span><span class="fi" s="6" wi="72">certain </span><span class="fi" s="5" wi="73">environment. </span><span class="fi" s="4" wi="74">each </span><span class="fi" s="3" wi="75">disadvantages. </span><span class="fi" s="7" wi="76">a </span><span class="fi" s="4" wi="77">writing </span><span class="fi" s="4" wi="78">some </span><span class="fi" s="4" wi="79">to </span><span class="fi" s="5" wi="80">a </span><span class="fi" s="6" wi="81">language </span><span class="fi" s="7" wi="82">can </span><span class="fi" s="5" wi="83">depend </span><span class="fi" s="5" wi="84">will </span><span class="fi" s="7" wi="85">executable. </span><span class="fi" s="4" wi="86">filter). </span><span class="fi" s="4" wi="87">overhead </span><span class="fi" s="6" wi="88">require </span><span class="fi" s="6" wi="89">JSON </span><span class="fi" s="5" wi="90">the </span><span class="fi" s="7" wi="91">cannot </span><span class="fi" s="7" wi="92">certain </span><span class="fi" s="6" wi="93">be </span><span class="fi" s="6" wi="94">to </span><span class="fi" s="3" wi="95">a </span><span class="fi" s="4" wi="96">First, </span></p><p id="p1sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p2" class="scramble-box" aria-hidden="true"><span class="fi" s="8" wi="0">filters </span><span class="fi" s="10" wi="1">to </span><span class="fi" s="9" wi="2">library </span><span class="fi" s="10" wi="3">data </span><span class="fi" s="9" wi="4">a </span><span class="fi" s="10" wi="5">and </span><span class="fi" s="9" wi="6">A </span><span class="fi" s="8" wi="7">external </span><span class="fi" s="9" wi="8">Lua </span><span class="fi" s="10" wi="9">it </span><span class="fi" s="8" wi="10">write </span><span class="fi" s="8" wi="11">version </span><span class="fi" s="8" wi="12">Lua </span><span class="fi" s="8" wi="13">dependencies </span><span class="fi" s="10" wi="14">from </span><span class="fi" s="9" wi="15">Lua </span><span class="fi" s="8" wi="16">in </span><span class="fi" s="10" wi="17">to </span><span class="fi" s="9" wi="18">creating </span><span class="fi" s="8" wi="19">Starting </span><span class="fi" s="10" wi="20">reading </span><span class="fi" s="9" wi="21">interpreter </span><span class="fi" s="10" wi="22">stdin. </span><span class="fi" s="9" wi="23">is </span><span class="fi" s="8" wi="24">at </span><span class="fi" s="10" wi="25">Pandoc </span><span class="fi" s="8" wi="26">with </span><span class="fi" s="10" wi="27">of </span><span class="fi" s="8" wi="28">pandoc </span><span class="fi" s="9" wi="29">5.3) </span><span class="fi" s="8" wi="30">all. </span><span class="fi" s="10" wi="31">writing </span><span class="fi" s="10" wi="32">Lua </span><span class="fi" s="9" wi="33">executable. </span><span class="fi" s="9" wi="34">the </span><span class="fi" s="8" wi="35">any </span><span class="fi" s="8" wi="36">makes </span><span class="fi" s="10" wi="37">the </span><span class="fi" s="10" wi="38">types </span><span class="fi" s="8" wi="39">2.0, </span><span class="fi" s="9" wi="40">pandoc </span><span class="fi" s="9" wi="41">into </span><span class="fi" s="9" wi="42">built </span><span class="fi" s="9" wi="43">pandoc </span><span class="fi" s="8" wi="44">it </span><span class="fi" s="8" wi="45">to </span><span class="fi" s="10" wi="46">JSON </span><span class="fi" s="10" wi="47">stdout </span><span class="fi" s="10" wi="48">are </span><span class="fi" s="9" wi="49">(version </span><span class="fi" s="10" wi="50">directly, </span><span class="fi" s="9" wi="51">filters </span><span class="fi" s="9" wi="52">and </span><span class="fi" s="9" wi="53">for </span><span class="fi" s="10" wi="54">overhead </span><span class="fi" s="10" wi="55">avoiding </span><span class="fi" s="10" wi="56">marshaled </span><span class="fi" s="8" wi="57">without </span><span class="fi" s="8" wi="58">possible </span></p><p id="p2sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p3" class="scramble-box" aria-hidden="true"><span class="fi" s="11" wi="0">is </span><span class="fi" s="11" wi="1">a </span><span class="fi" s="11" wi="2">an </span><span class="fi" s="11" wi="3">Here </span><span class="fi" s="11" wi="4">small </span><span class="fi" s="11" wi="5">emphasis </span><span class="fi" s="11" wi="6">of </span><span class="fi" s="11" wi="7">caps: </span><span class="fi" s="11" wi="8">filter </span><span class="fi" s="11" wi="9">that </span><span class="fi" s="11" wi="10">Lua </span><span class="fi" s="11" wi="11">converts </span><span class="fi" s="11" wi="12">to </span><span class="fi" s="11" wi="13">example </span><span class="fi" s="11" wi="14">strong </span></p><p id="p3sr" class="sr-text" aria-live="polite" role="status"></p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">Strong</span> <span class="op">=</span> <span class="kw">function</span> <span class="op">(</span><span class="va">elem</span><span class="op">)</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>      <span class="cf">return</span> <span class="va">pandoc</span><span class="op">.</span>SmallCaps<span class="op">(</span><span class="va">elem</span><span class="op">.</span><span class="va">c</span><span class="op">)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span><span class="op">,</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">}</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p id="p4" class="scramble-box" aria-hidden="true"><span class="fi" s="12" wi="0">equivalently, </span><span class="fi" s="12" wi="1">or </span></p><p id="p4sr" class="sr-text" aria-live="polite" role="status"></p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> Strong<span class="op">(</span><span class="va">elem</span><span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="va">pandoc</span><span class="op">.</span>SmallCaps<span class="op">(</span><span class="va">elem</span><span class="op">.</span><span class="va">c</span><span class="op">)</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div>
+<p id="p5" class="scramble-box" aria-hidden="true"><span class="fi" s="13" wi="0">it </span><span class="fi" s="13" wi="1">the </span><span class="fi" s="13" wi="2">says: </span><span class="fi" s="13" wi="3">This </span><span class="fi" s="13" wi="4">same </span><span class="fi" s="13" wi="5">element, </span><span class="fi" s="13" wi="6">a </span><span class="fi" s="13" wi="7">you </span><span class="fi" s="13" wi="8">find </span><span class="fi" s="13" wi="9">when </span><span class="fi" s="13" wi="10">Strong </span><span class="fi" s="13" wi="11">element </span><span class="fi" s="13" wi="12">AST, </span><span class="fi" s="13" wi="13">with </span><span class="fi" s="13" wi="14">the </span><span class="fi" s="13" wi="15">and </span><span class="fi" s="13" wi="16">replace </span><span class="fi" s="13" wi="17">with </span><span class="fi" s="13" wi="18">content. </span><span class="fi" s="13" wi="19">a </span><span class="fi" s="13" wi="20">walk </span><span class="fi" s="13" wi="21">SmallCaps </span></p><p id="p5sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p6" class="scramble-box" aria-hidden="true"><span class="fi" s="14" wi="0">invoke </span><span class="fi" s="14" wi="1">file, </span><span class="fi" s="14" wi="2">with </span><span class="fi" s="14" wi="3">smallcaps.lua, </span><span class="fi" s="14" wi="4">run </span><span class="fi" s="14" wi="5">say </span><span class="fi" s="14" wi="6">pandoc </span><span class="fi" s="14" wi="7">To </span><span class="fi" s="14" wi="8">it </span><span class="fi" s="14" wi="9">--lua-filter=smallcaps.lua. </span><span class="fi" s="14" wi="10">save </span><span class="fi" s="14" wi="11">it, </span><span class="fi" s="14" wi="12">a </span><span class="fi" s="14" wi="13">in </span><span class="fi" s="14" wi="14">and </span></p><p id="p6sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p7" class="scramble-box" aria-hidden="true"><span class="fi" s="15" wi="0">manual </span><span class="fi" s="15" wi="1">filter </span><span class="fi" s="15" wi="2">smallcaps) </span><span class="fi" s="15" wi="3">Here’s </span><span class="fi" s="15" wi="4">comparison, </span><span class="fi" s="15" wi="5">JSON </span><span class="fi" s="15" wi="6">the </span><span class="fi" s="15" wi="7">and </span><span class="fi" s="15" wi="8">performance </span><span class="fi" s="15" wi="9">HTML, </span><span class="fi" s="15" wi="10">the </span><span class="fi" s="15" wi="11">a </span><span class="fi" s="15" wi="12">quick </span><span class="fi" s="15" wi="13">versions </span><span class="fi" s="15" wi="14">to </span><span class="fi" s="15" wi="15">same </span><span class="fi" s="15" wi="16">Haskell( </span><span class="fi" s="15" wi="17">(MANUAL.txt) </span><span class="fi" s="15" wi="18">compiled </span><span class="fi" s="15" wi="19">pandoc </span><span class="fi" s="15" wi="20">in </span><span class="fi" s="15" wi="21">Python( </span><span class="fi" s="15" wi="22">converting </span><span class="fi" s="15" wi="23">smallcaps.py): </span><span class="fi" s="15" wi="24">with </span><span class="fi" s="15" wi="25">interpreted </span><span class="fi" s="15" wi="26">of </span><span class="fi" s="15" wi="27">written </span></p><p id="p7sr" class="sr-text" aria-live="polite" role="status"></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Command</th>
+<th style="text-align: left;">Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>pandoc</code></td>
+<td style="text-align: left;">1.01s</td>
+</tr>
+<tr>
+<td
+style="text-align: left;"><code>pandoc --filter ./smallcaps</code></td>
+<td style="text-align: left;">1.36s</td>
+</tr>
+<tr>
+<td
+style="text-align: left;"><code>pandoc --filter ./smallcaps.py</code></td>
+<td style="text-align: left;">1.40s</td>
+</tr>
+<tr>
+<td
+style="text-align: left;"><code>pandoc --lua-filter ./smallcaps.lua</code></td>
+<td style="text-align: left;">1.03s</td>
+</tr>
+</tbody>
+</table>
+<p id="p8" class="scramble-box" aria-hidden="true"><span class="fi" s="16" wi="0">As </span><span class="fi" s="16" wi="1">can </span><span class="fi" s="16" wi="2">the </span><span class="fi" s="16" wi="3">the </span><span class="fi" s="16" wi="4">and </span><span class="fi" s="16" wi="5">Lua </span><span class="fi" s="16" wi="6">JSON </span><span class="fi" s="16" wi="7">marshaling </span><span class="fi" s="16" wi="8">with </span><span class="fi" s="16" wi="9">filter </span><span class="fi" s="16" wi="10">overhead </span><span class="fi" s="16" wi="11">associated </span><span class="fi" s="16" wi="12">from </span><span class="fi" s="16" wi="13">avoids </span><span class="fi" s="16" wi="14">see, </span><span class="fi" s="16" wi="15">you </span><span class="fi" s="16" wi="16">a </span><span class="fi" s="16" wi="17">to </span><span class="fi" s="16" wi="18">over </span><span class="fi" s="16" wi="19">substantial </span><span class="fi" s="16" wi="20">pipe. </span></p><p id="p8sr" class="sr-text" aria-live="polite" role="status"></p>
+<h1 id="lua-filter-structure">Lua filter structure</h1>
+<p id="p9" class="scramble-box" aria-hidden="true"><span class="fi" s="17" wi="0">Lua </span><span class="fi" s="17" wi="1">tables </span><span class="fi" s="17" wi="2">those </span><span class="fi" s="17" wi="3">are </span><span class="fi" s="17" wi="4">and </span><span class="fi" s="17" wi="5">on </span><span class="fi" s="17" wi="6">of </span><span class="fi" s="17" wi="7">values </span><span class="fi" s="17" wi="8">acting </span><span class="fi" s="17" wi="9">elements. </span><span class="fi" s="17" wi="10">element </span><span class="fi" s="17" wi="11">names </span><span class="fi" s="17" wi="12">consisting </span><span class="fi" s="17" wi="13">as </span><span class="fi" s="17" wi="14">keys </span><span class="fi" s="17" wi="15">functions </span><span class="fi" s="17" wi="16">with </span><span class="fi" s="17" wi="17">filters </span></p><p id="p9sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p10" class="scramble-box" aria-hidden="true"><span class="fi" s="19" wi="0">a </span><span class="fi" s="18" wi="1">put </span><span class="fi" s="19" wi="2">a </span><span class="fi" s="19" wi="3">in </span><span class="fi" s="19" wi="4">be </span><span class="fi" s="19" wi="5">example, </span><span class="fi" s="19" wi="6">if </span><span class="fi" s="19" wi="7">applied </span><span class="fi" s="18" wi="8">to </span><span class="fi" s="18" wi="9">--lua-filter </span><span class="fi" s="18" wi="10">argument. </span><span class="fi" s="19" wi="11">this: </span><span class="fi" s="19" wi="12">For </span><span class="fi" s="18" wi="13">command-line </span><span class="fi" s="18" wi="14">are </span><span class="fi" s="18" wi="15">into </span><span class="fi" s="18" wi="16">separate </span><span class="fi" s="18" wi="17">files </span><span class="fi" s="19" wi="18">current-date.lua, </span><span class="fi" s="19" wi="19">then </span><span class="fi" s="18" wi="20">be </span><span class="fi" s="19" wi="21">like </span><span class="fi" s="19" wi="22">would </span><span class="fi" s="18" wi="23">Filters </span><span class="fi" s="18" wi="24">via </span><span class="fi" s="19" wi="25">is </span><span class="fi" s="18" wi="26">passed </span><span class="fi" s="19" wi="27">filter </span><span class="fi" s="19" wi="28">defined </span><span class="fi" s="19" wi="29">it </span><span class="fi" s="18" wi="30">the </span><span class="fi" s="18" wi="31">are </span><span class="fi" s="18" wi="32">and </span><span class="fi" s="19" wi="33">file </span><span class="fi" s="18" wi="34">expected </span></p><p id="p10sr" class="sr-text" aria-live="polite" role="status"></p>
+<pre><code>pandoc --lua-filter=current-date.lua -f markdown MANUAL.txt</code></pre>
+<p id="p11" class="scramble-box" aria-hidden="true"><span class="fi" s="21" wi="0">applies </span><span class="fi" s="21" wi="1">filters </span><span class="fi" s="21" wi="2">the </span><span class="fi" s="20" wi="3">may </span><span class="fi" s="21" wi="4">filters </span><span class="fi" s="21" wi="5">specified </span><span class="fi" s="21" wi="6">they </span><span class="fi" s="21" wi="7">command </span><span class="fi" s="21" wi="8">--filter </span><span class="fi" s="20" wi="9">option </span><span class="fi" s="21" wi="10">on </span><span class="fi" s="20" wi="11">multiple </span><span class="fi" s="20" wi="12">supplied </span><span class="fi" s="20" wi="13">--lua-filter </span><span class="fi" s="21" wi="14">the </span><span class="fi" s="21" wi="15">in </span><span class="fi" s="20" wi="16">be </span><span class="fi" s="20" wi="17">The </span><span class="fi" s="21" wi="18">via </span><span class="fi" s="21" wi="19">--lua-filter) </span><span class="fi" s="21" wi="20">and </span><span class="fi" s="21" wi="21">(including </span><span class="fi" s="21" wi="22">filters </span><span class="fi" s="21" wi="23">line. </span><span class="fi" s="21" wi="24">specified </span><span class="fi" s="21" wi="25">via </span><span class="fi" s="21" wi="26">order </span><span class="fi" s="21" wi="27">all </span><span class="fi" s="21" wi="28">appear </span><span class="fi" s="21" wi="29">Pandoc </span><span class="fi" s="21" wi="30">Lua </span><span class="fi" s="21" wi="31">JSON </span><span class="fi" s="20" wi="32">times. </span></p><p id="p11sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p12" class="scramble-box" aria-hidden="true"><span class="fi" s="24" wi="0">a </span><span class="fi" s="24" wi="1">pandoc </span><span class="fi" s="24" wi="2">elements </span><span class="fi" s="23" wi="3">filters </span><span class="fi" s="22" wi="4">each </span><span class="fi" s="23" wi="5">filter. </span><span class="fi" s="24" wi="6">all </span><span class="fi" s="24" wi="7">Meta, </span><span class="fi" s="23" wi="8">in </span><span class="fi" s="24" wi="9">script, </span><span class="fi" s="24" wi="10">Str, </span><span class="fi" s="23" wi="11">that </span><span class="fi" s="22" wi="12">return </span><span class="fi" s="24" wi="13">by </span><span class="fi" s="23" wi="14">each </span><span class="fi" s="24" wi="15">equivalent.) </span><span class="fi" s="24" wi="16">If </span><span class="fi" s="24" wi="17">two </span><span class="fi" s="24" wi="18">collecting </span><span class="fi" s="24" wi="19">correspond </span><span class="fi" s="24" wi="20">will </span><span class="fi" s="24" wi="21">Para, </span><span class="fi" s="24" wi="22">pandoc </span><span class="fi" s="23" wi="23">The </span><span class="fi" s="24" wi="24">by </span><span class="fi" s="22" wi="25">file </span><span class="fi" s="24" wi="26">returned </span><span class="fi" s="24" wi="27">functions </span><span class="fi" s="23" wi="28">are </span><span class="fi" s="24" wi="29">or </span><span class="fi" s="24" wi="30">no </span><span class="fi" s="24" wi="31">to </span><span class="fi" s="24" wi="32">value </span><span class="fi" s="24" wi="33">is </span><span class="fi" s="24" wi="34">(e.g., </span><span class="fi" s="24" wi="35">of </span><span class="fi" s="22" wi="36">expects </span><span class="fi" s="24" wi="37">filter </span><span class="fi" s="23" wi="38">of </span><span class="fi" s="24" wi="39">the </span><span class="fi" s="24" wi="40">the </span><span class="fi" s="24" wi="41">examples </span><span class="fi" s="23" wi="42">on </span><span class="fi" s="24" wi="43">(That </span><span class="fi" s="24" wi="44">single </span><span class="fi" s="24" wi="45">filter </span><span class="fi" s="22" wi="46">filters. </span><span class="fi" s="23" wi="47">the </span><span class="fi" s="22" wi="48">of </span><span class="fi" s="22" wi="49">to </span><span class="fi" s="24" wi="50">there </span><span class="fi" s="24" wi="51">Pandoc). </span><span class="fi" s="24" wi="52">above </span><span class="fi" s="24" wi="53">then </span><span class="fi" s="24" wi="54">why </span><span class="fi" s="23" wi="55">previous </span><span class="fi" s="24" wi="56">to </span><span class="fi" s="24" wi="57">whose </span><span class="fi" s="24" wi="58">is </span><span class="fi" s="23" wi="59">the </span><span class="fi" s="22" wi="60">list </span><span class="fi" s="24" wi="61">top-level </span><span class="fi" s="24" wi="62">are </span><span class="fi" s="22" wi="63">Pandoc </span><span class="fi" s="23" wi="64">called </span><span class="fi" s="22" wi="65">Lua </span><span class="fi" s="24" wi="66">try </span><span class="fi" s="23" wi="67">result </span><span class="fi" s="24" wi="68">those </span><span class="fi" s="24" wi="69">generate </span><span class="fi" s="23" wi="70">sequentially, </span><span class="fi" s="22" wi="71">a </span><span class="fi" s="24" wi="72">names </span><span class="fi" s="23" wi="73">list </span></p><p id="p12sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p13" class="scramble-box" aria-hidden="true"><span class="fi" s="27" wi="0">other </span><span class="fi" s="25" wi="1">element </span><span class="fi" s="25" wi="2">the </span><span class="fi" s="25" wi="3">filter. </span><span class="fi" s="26" wi="4">are </span><span class="fi" s="27" wi="5">in </span><span class="fi" s="25" wi="6">traversed </span><span class="fi" s="27" wi="7">getting </span><span class="fi" s="25" wi="8">the </span><span class="fi" s="26" wi="9">entry </span><span class="fi" s="27" wi="10">entries </span><span class="fi" s="26" wi="11">which </span><span class="fi" s="27" wi="12">In </span><span class="fi" s="27" wi="13">element </span><span class="fi" s="25" wi="14">For </span><span class="fi" s="27" wi="15">the </span><span class="fi" s="27" wi="16">will </span><span class="fi" s="27" wi="17">corresponding </span><span class="fi" s="27" wi="18">respective </span><span class="fi" s="27" wi="19">be </span><span class="fi" s="25" wi="20">filter, </span><span class="fi" s="25" wi="21">each </span><span class="fi" s="25" wi="22">subjected </span><span class="fi" s="26" wi="23">of </span><span class="fi" s="26" wi="24">an </span><span class="fi" s="26" wi="25">function </span><span class="fi" s="25" wi="26">document </span><span class="fi" s="26" wi="27">same </span><span class="fi" s="27" wi="28">each </span><span class="fi" s="26" wi="29">function. </span><span class="fi" s="26" wi="30">Lua </span><span class="fi" s="27" wi="31">for </span><span class="fi" s="26" wi="32">to </span><span class="fi" s="27" wi="33">element </span><span class="fi" s="26" wi="34">passed </span><span class="fi" s="26" wi="35">name) </span><span class="fi" s="26" wi="36">Elements </span><span class="fi" s="27" wi="37">filter </span><span class="fi" s="25" wi="38">is </span><span class="fi" s="27" wi="39">the </span><span class="fi" s="27" wi="40">as </span><span class="fi" s="26" wi="41">filter </span><span class="fi" s="26" wi="42">the </span><span class="fi" s="27" wi="43">input. </span><span class="fi" s="26" wi="44">for </span><span class="fi" s="26" wi="45">(i.e. a </span><span class="fi" s="27" wi="46">called </span><span class="fi" s="26" wi="47">element </span><span class="fi" s="26" wi="48">the </span><span class="fi" s="26" wi="49">contains </span><span class="fi" s="27" wi="50">words, </span><span class="fi" s="25" wi="51">and </span><span class="fi" s="26" wi="52">filtering </span><span class="fi" s="27" wi="53">document, </span><span class="fi" s="25" wi="54">each </span><span class="fi" s="25" wi="55">to </span></p><p id="p13sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p14" class="scramble-box" aria-hidden="true"><span class="fi" s="28" wi="0">value </span><span class="fi" s="28" wi="1">one </span><span class="fi" s="28" wi="2">the </span><span class="fi" s="28" wi="3">be </span><span class="fi" s="28" wi="4">of </span><span class="fi" s="28" wi="5">function </span><span class="fi" s="28" wi="6">filter </span><span class="fi" s="28" wi="7">must </span><span class="fi" s="28" wi="8">The </span><span class="fi" s="28" wi="9">of </span><span class="fi" s="28" wi="10">following: </span><span class="fi" s="28" wi="11">return </span><span class="fi" s="28" wi="12">a </span></p><p id="p14sr" class="sr-text" aria-live="polite" role="status"></p>
+<ul>
+<li>nil: this means that the object should remain unchanged.</li>
+<li>a pandoc object: this must be of the same type as the input and will
+replace the original object.</li>
+<li>a list of pandoc objects: these will replace the original object;
+the list is merged with the neighbors of the original objects (spliced
+into the list the original object belongs to); returning an empty list
+deletes the object.</li>
+</ul>
+<p id="p15" class="scramble-box" aria-hidden="true"><span class="fi" s="30" wi="0">block </span><span class="fi" s="30" wi="1">inlines, </span><span class="fi" s="31" wi="2">an </span><span class="fi" s="30" wi="3">This </span><span class="fi" s="29" wi="4">input. </span><span class="fi" s="31" wi="5">throw </span><span class="fi" s="30" wi="6">element </span><span class="fi" s="29" wi="7">output </span><span class="fi" s="30" wi="8">inline, </span><span class="fi" s="29" wi="9">must </span><span class="fi" s="30" wi="10">a </span><span class="fi" s="31" wi="11">violated. </span><span class="fi" s="30" wi="12">or </span><span class="fi" s="30" wi="13">a </span><span class="fi" s="30" wi="14">list </span><span class="fi" s="30" wi="15">and </span><span class="fi" s="30" wi="16">one </span><span class="fi" s="30" wi="17">means </span><span class="fi" s="29" wi="18">in </span><span class="fi" s="30" wi="19">a </span><span class="fi" s="31" wi="20">Pandoc </span><span class="fi" s="30" wi="21">an </span><span class="fi" s="30" wi="22">on </span><span class="fi" s="29" wi="23">element </span><span class="fi" s="31" wi="24">will </span><span class="fi" s="30" wi="25">function </span><span class="fi" s="30" wi="26">either </span><span class="fi" s="29" wi="27">The </span><span class="fi" s="30" wi="28">filtering </span><span class="fi" s="30" wi="29">return </span><span class="fi" s="29" wi="30">an </span><span class="fi" s="29" wi="31">the </span><span class="fi" s="30" wi="32">element </span><span class="fi" s="30" wi="33">of </span><span class="fi" s="30" wi="34">inline </span><span class="fi" s="29" wi="35">function’s </span><span class="fi" s="31" wi="36">if </span><span class="fi" s="29" wi="37">result </span><span class="fi" s="30" wi="38">function </span><span class="fi" s="29" wi="39">type </span><span class="fi" s="30" wi="40">a </span><span class="fi" s="30" wi="41">elements. </span><span class="fi" s="30" wi="42">nil, </span><span class="fi" s="30" wi="43">a </span><span class="fi" s="30" wi="44">of </span><span class="fi" s="30" wi="45">block, </span><span class="fi" s="31" wi="46">is </span><span class="fi" s="31" wi="47">error </span><span class="fi" s="29" wi="48">same </span><span class="fi" s="30" wi="49">a </span><span class="fi" s="31" wi="50">condition </span><span class="fi" s="30" wi="51">must </span><span class="fi" s="30" wi="52">of </span><span class="fi" s="30" wi="53">an </span><span class="fi" s="30" wi="54">list </span><span class="fi" s="30" wi="55">acting </span><span class="fi" s="30" wi="56">block </span><span class="fi" s="29" wi="57">the </span><span class="fi" s="29" wi="58">of </span><span class="fi" s="30" wi="59">must </span><span class="fi" s="30" wi="60">or </span><span class="fi" s="30" wi="61">filter </span><span class="fi" s="30" wi="62">return </span><span class="fi" s="31" wi="63">this </span><span class="fi" s="29" wi="64">as </span><span class="fi" s="30" wi="65">nil, </span></p><p id="p15sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p16" class="scramble-box" aria-hidden="true"><span class="fi" s="33" wi="0">are </span><span class="fi" s="33" wi="1">functions </span><span class="fi" s="32" wi="2">more </span><span class="fi" s="32" wi="3">function. </span><span class="fi" s="32" wi="4">fallback </span><span class="fi" s="32" wi="5">no </span><span class="fi" s="32" wi="6">If </span><span class="fi" s="32" wi="7">then </span><span class="fi" s="32" wi="8">the </span><span class="fi" s="33" wi="9">Two </span><span class="fi" s="33" wi="10">supported, </span><span class="fi" s="33" wi="11">and </span><span class="fi" s="32" wi="12">general </span><span class="fi" s="32" wi="13">element’s </span><span class="fi" s="34" wi="14">respective </span><span class="fi" s="32" wi="15">look </span><span class="fi" s="32" wi="16">function </span><span class="fi" s="32" wi="17">there </span><span class="fi" s="32" wi="18">matching </span><span class="fi" s="34" wi="19">of </span><span class="fi" s="32" wi="20">filtering </span><span class="fi" s="32" wi="21">is </span><span class="fi" s="34" wi="22">Each </span><span class="fi" s="32" wi="23">system </span><span class="fi" s="33" wi="24">Block. </span><span class="fi" s="32" wi="25">for </span><span class="fi" s="34" wi="26">the </span><span class="fi" s="32" wi="27">will </span><span class="fi" s="32" wi="28">type, </span><span class="fi" s="33" wi="29">Inline </span><span class="fi" s="32" wi="30">the </span><span class="fi" s="34" wi="31">elements </span><span class="fi" s="34" wi="32">type. </span><span class="fi" s="33" wi="33">fallback </span><span class="fi" s="32" wi="34">a </span><span class="fi" s="34" wi="35">matches </span><span class="fi" s="32" wi="36">node </span></p><p id="p16sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p17" class="scramble-box" aria-hidden="true"><span class="fi" s="35" wi="0">are </span><span class="fi" s="35" wi="1">Elements </span><span class="fi" s="35" wi="2">untouched. </span><span class="fi" s="35" wi="3">functions </span><span class="fi" s="35" wi="4">without </span><span class="fi" s="35" wi="5">matching </span><span class="fi" s="35" wi="6">left </span></p><p id="p17sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p18" class="scramble-box" aria-hidden="true"><span class="fi" s="36" wi="0">documentation </span><span class="fi" s="36" wi="1">module </span><span class="fi" s="36" wi="2">pandoc </span><span class="fi" s="36" wi="3">for </span><span class="fi" s="36" wi="4">See </span><span class="fi" s="36" wi="5">list </span><span class="fi" s="36" wi="6">elements. </span><span class="fi" s="36" wi="7">a </span><span class="fi" s="36" wi="8">of </span></p><p id="p18sr" class="sr-text" aria-live="polite" role="status"></p>
+<h2 id="filters-on-element-sequences">Filters on element sequences</h2>
+<p id="p19" class="scramble-box" aria-hidden="true"><span class="fi" s="38" wi="0">It </span><span class="fi" s="37" wi="1">For </span><span class="fi" s="37" wi="2">necessary </span><span class="fi" s="37" wi="3">it </span><span class="fi" s="38" wi="4">inspect </span><span class="fi" s="37" wi="5">is </span><span class="fi" s="37" wi="6">tasks, </span><span class="fi" s="37" wi="7">filtering </span><span class="fi" s="38" wi="8">element </span><span class="fi" s="38" wi="9">then </span><span class="fi" s="37" wi="10">occur </span><span class="fi" s="37" wi="11">the </span><span class="fi" s="38" wi="12">a </span><span class="fi" s="38" wi="13">time. </span><span class="fi" s="38" wi="14">at </span><span class="fi" s="37" wi="15">document. </span><span class="fi" s="38" wi="16">not </span><span class="fi" s="37" wi="17">to </span><span class="fi" s="37" wi="18">in </span><span class="fi" s="37" wi="19">the </span><span class="fi" s="37" wi="20">know </span><span class="fi" s="37" wi="21">order </span><span class="fi" s="37" wi="22">in </span><span class="fi" s="38" wi="23">single </span><span class="fi" s="37" wi="24">elements </span><span class="fi" s="38" wi="25">to </span><span class="fi" s="37" wi="26">some </span><span class="fi" s="37" wi="27">which </span><span class="fi" s="38" wi="28">enough </span><span class="fi" s="38" wi="29">a </span><span class="fi" s="38" wi="30">is </span></p><p id="p19sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p20" class="scramble-box" aria-hidden="true"><span class="fi" s="39" wi="0">on </span><span class="fi" s="39" wi="1">lists </span><span class="fi" s="39" wi="2">can </span><span class="fi" s="39" wi="3">There </span><span class="fi" s="39" wi="4">two </span><span class="fi" s="39" wi="5">special </span><span class="fi" s="39" wi="6">be </span><span class="fi" s="39" wi="7">blocks </span><span class="fi" s="39" wi="8">which </span><span class="fi" s="39" wi="9">names, </span><span class="fi" s="39" wi="10">define </span><span class="fi" s="39" wi="11">of </span><span class="fi" s="39" wi="12">lists </span><span class="fi" s="39" wi="13">or </span><span class="fi" s="39" wi="14">inlines. </span><span class="fi" s="39" wi="15">are </span><span class="fi" s="39" wi="16">of </span><span class="fi" s="39" wi="17">used </span><span class="fi" s="39" wi="18">function </span><span class="fi" s="39" wi="19">to </span><span class="fi" s="39" wi="20">filters </span></p><p id="p20sr" class="sr-text" aria-live="polite" role="status"></p>
+<dl>
+<dt><span id="inlines-filter"><code>Inlines (inlines)</code></span></dt>
+<dd>
+If present in a filter, this function will be called on all lists of
+inline elements, like the content of a [Para] (paragraph) block, or the
+description of an [Image]. The <code>inlines</code> argument passed to
+the function will be a [List] of [Inline] elements for each call.
+</dd>
+<dt><span id="blocks-filter"><code>Blocks (blocks)</code></span></dt>
+<dd>
+If present in a filter, this function will be called on all lists of
+block elements, like the content of a [MetaBlocks] meta element block,
+on each item of a list, and the main content of the [Pandoc] document.
+The <code>blocks</code> argument passed to the function will be a [List]
+of [Block] elements for each call.
+</dd>
+</dl>
+<p id="p21" class="scramble-box" aria-hidden="true"><span class="fi" s="40" wi="0">left </span><span class="fi" s="40" wi="1">input </span><span class="fi" s="40" wi="2">These </span><span class="fi" s="40" wi="3">same </span><span class="fi" s="41" wi="4">a </span><span class="fi" s="41" wi="5"><b>not</b> </span><span class="fi" s="41" wi="6">allowed </span><span class="fi" s="40" wi="7">list </span><span class="fi" s="40" wi="8">list </span><span class="fi" s="41" wi="9">at </span><span class="fi" s="41" wi="10">as </span><span class="fi" s="41" wi="11">are </span><span class="fi" s="40" wi="12">the </span><span class="fi" s="41" wi="13">values, </span><span class="fi" s="40" wi="14">either </span><span class="fi" s="41" wi="15">context </span><span class="fi" s="41" wi="16">return </span><span class="fi" s="40" wi="17">which </span><span class="fi" s="41" wi="18">hints </span><span class="fi" s="40" wi="19">the </span><span class="fi" s="41" wi="20">in </span><span class="fi" s="41" wi="21">usually </span><span class="fi" s="40" wi="22">must </span><span class="fi" s="40" wi="23">type </span><span class="fi" s="40" wi="24">type, </span><span class="fi" s="40" wi="25">that </span><span class="fi" s="41" wi="26">a </span><span class="fi" s="40" wi="27">special </span><span class="fi" s="40" wi="28">the </span><span class="fi" s="40" wi="29">correct </span><span class="fi" s="40" wi="30">is </span><span class="fi" s="41" wi="31">this </span><span class="fi" s="40" wi="32">of </span><span class="fi" s="40" wi="33">the </span><span class="fi" s="40" wi="34">or </span><span class="fi" s="40" wi="35">filter </span><span class="fi" s="40" wi="36">the </span><span class="fi" s="40" wi="37">functions </span><span class="fi" s="40" wi="38">in </span><span class="fi" s="40" wi="39">as </span><span class="fi" s="41" wi="40">element </span><span class="fi" s="40" wi="41">be </span><span class="fi" s="40" wi="42">must </span><span class="fi" s="41" wi="43">bug. </span><span class="fi" s="40" wi="44">unchanged, </span><span class="fi" s="41" wi="45">Single </span><span class="fi" s="40" wi="46">result </span><span class="fi" s="41" wi="47">elements </span><span class="fi" s="40" wi="48">argument. </span><span class="fi" s="40" wi="49">are </span><span class="fi" s="41" wi="50">single </span><span class="fi" s="40" wi="51">in </span><span class="fi" s="40" wi="52">nil, </span><span class="fi" s="40" wi="53">a </span><span class="fi" s="40" wi="54">case </span><span class="fi" s="41" wi="55">as </span><span class="fi" s="40" wi="56">i.e., </span><span class="fi" s="40" wi="57">be </span></p><p id="p21sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p22" class="scramble-box" aria-hidden="true"><span class="fi" s="42" wi="0">before </span><span class="fi" s="42" wi="1">example. </span><span class="fi" s="42" wi="2">an </span><span class="fi" s="42" wi="3">“Remove </span><span class="fi" s="42" wi="4">normal </span><span class="fi" s="42" wi="5">spaces </span><span class="fi" s="42" wi="6">See </span><span class="fi" s="42" wi="7">for </span><span class="fi" s="42" wi="8">citations” </span></p><p id="p22sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p23" class="scramble-box" aria-hidden="true"><span class="fi" s="43" wi="0">has </span><span class="fi" s="43" wi="1">pandoc </span><span class="fi" s="43" wi="2">added </span><span class="fi" s="43" wi="3">in </span><span class="fi" s="43" wi="4">functionality </span><span class="fi" s="43" wi="5">2.9.2. </span><span class="fi" s="43" wi="6">This </span><span class="fi" s="43" wi="7">been </span></p><p id="p23sr" class="sr-text" aria-live="polite" role="status"></p>
+<h2 id="traversal-order">Traversal order</h2>
+<p id="p24" class="scramble-box" aria-hidden="true"><span class="fi" s="44" wi="0">traversal </span><span class="fi" s="44" wi="1">to </span><span class="fi" s="44" wi="2">default </span><span class="fi" s="44" wi="3">be </span><span class="fi" s="44" wi="4">The </span><span class="fi" s="44" wi="5">&#39;typewise&#39;; </span><span class="fi" s="44" wi="6">setting </span><span class="fi" s="44" wi="7">order </span><span class="fi" s="44" wi="8">traverse </span><span class="fi" s="44" wi="9">key </span><span class="fi" s="44" wi="10">&#39;topdown&#39; </span><span class="fi" s="44" wi="11">by </span><span class="fi" s="44" wi="12">of </span><span class="fi" s="44" wi="13">&#39;typewise&#39;. </span><span class="fi" s="44" wi="14">is </span><span class="fi" s="44" wi="15">selected </span><span class="fi" s="44" wi="16">filters </span><span class="fi" s="44" wi="17">or </span><span class="fi" s="44" wi="18">the </span><span class="fi" s="44" wi="19">either </span><span class="fi" s="44" wi="20">can </span><span class="fi" s="44" wi="21">the </span></p><p id="p24sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p25" class="scramble-box" aria-hidden="true"><span class="fi" s="45" wi="0">Example: </span></p><p id="p25sr" class="sr-text" aria-live="polite" role="status"></p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">filter</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="va">traverse</span> <span class="op">=</span> <span class="st">&#39;topdown&#39;</span><span class="op">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- ... filter functions ...</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="op">{</span><span class="va">filter</span><span class="op">}</span></span></code></pre></div>
+<p id="p26" class="scramble-box" aria-hidden="true"><span class="fi" s="46" wi="0">pandoc </span><span class="fi" s="46" wi="1">the </span><span class="fi" s="46" wi="2">previous </span><span class="fi" s="46" wi="3">was </span><span class="fi" s="46" wi="4">setting. </span><span class="fi" s="46" wi="5">Support </span><span class="fi" s="46" wi="6">versions </span><span class="fi" s="46" wi="7">in </span><span class="fi" s="46" wi="8">added </span><span class="fi" s="46" wi="9">for </span><span class="fi" s="46" wi="10">traverse </span><span class="fi" s="46" wi="11">ignore </span><span class="fi" s="46" wi="12">2.17; </span><span class="fi" s="46" wi="13">this </span></p><p id="p26sr" class="sr-text" aria-live="polite" role="status"></p>
+<h3 id="typewise-traversal">Typewise traversal</h3>
+<p id="p27" class="scramble-box" aria-hidden="true"><span class="fi" s="47" wi="0">in </span><span class="fi" s="47" wi="1">a </span><span class="fi" s="47" wi="2">skipping </span><span class="fi" s="47" wi="3">any </span><span class="fi" s="47" wi="4">within </span><span class="fi" s="47" wi="5">order, </span><span class="fi" s="47" wi="6">fixed </span><span class="fi" s="47" wi="7">functions </span><span class="fi" s="47" wi="8">are </span><span class="fi" s="47" wi="9">not </span><span class="fi" s="47" wi="10">which </span><span class="fi" s="47" wi="11">called </span><span class="fi" s="47" wi="12">Element </span><span class="fi" s="47" wi="13">present: </span><span class="fi" s="47" wi="14">set </span><span class="fi" s="47" wi="15">are </span><span class="fi" s="47" wi="16">a </span><span class="fi" s="47" wi="17">filter </span><span class="fi" s="47" wi="18">filter </span></p><p id="p27sr" class="sr-text" aria-live="polite" role="status"></p>
+<ol type="1">
+<li>functions for <a href="#type-inline"><em>Inline</em>
+elements</a>,</li>
+<li>the <a href="#inlines-filter"><code>Inlines</code></a> filter
+function,</li>
+<li>functions for <a href="#type-block"><em>Block</em> elements</a>
+,</li>
+<li>the <a href="#inlines-filter"><code>Blocks</code></a> filter
+function,</li>
+<li>the <a href="#type-meta"><code>Meta</code></a> filter function, and
+last</li>
+<li>the <a href="#type-pandoc"><code>Pandoc</code></a> filter
+function.</li>
+</ol>
+<p id="p28" class="scramble-box" aria-hidden="true"><span class="fi" s="49" wi="0">one </span><span class="fi" s="49" wi="1">example, </span><span class="fi" s="49" wi="2">write </span><span class="fi" s="49" wi="3">For </span><span class="fi" s="49" wi="4">to </span><span class="fi" s="49" wi="5">filter </span><span class="fi" s="49" wi="6">for </span><span class="fi" s="49" wi="7">can </span><span class="fi" s="48" wi="8">a </span><span class="fi" s="48" wi="9">sets. </span><span class="fi" s="48" wi="10">by </span><span class="fi" s="48" wi="11">It </span><span class="fi" s="48" wi="12">filter </span><span class="fi" s="49" wi="13">before </span><span class="fi" s="49" wi="14">is </span><span class="fi" s="48" wi="15">force </span><span class="fi" s="49" wi="16">if </span><span class="fi" s="48" wi="17">possible </span><span class="fi" s="48" wi="18">to </span><span class="fi" s="49" wi="19">that </span><span class="fi" s="48" wi="20">returning </span><span class="fi" s="49" wi="21">run </span><span class="fi" s="48" wi="22">different </span><span class="fi" s="48" wi="23">explicitly </span><span class="fi" s="49" wi="24"><i>Meta</i> </span><span class="fi" s="48" wi="25">multiple </span><span class="fi" s="48" wi="26">order </span><span class="fi" s="49" wi="27"><i>Str</i>, </span><span class="fi" s="49" wi="28">the </span><span class="fi" s="48" wi="29">still </span><span class="fi" s="49" wi="30">be </span><span class="fi" s="49" wi="31">for </span><span class="fi" s="48" wi="32">is </span></p><p id="p28sr" class="sr-text" aria-live="polite" role="status"></p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ... filter definitions ...</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="op">{</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">Meta</span> <span class="op">=</span> <span class="va">Meta</span> <span class="op">},</span>  <span class="co">-- (1)</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">{</span> <span class="va">Str</span> <span class="op">=</span> <span class="va">Str</span> <span class="op">}</span>     <span class="co">-- (2)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p id="p29" class="scramble-box" aria-hidden="true"><span class="fi" s="51" wi="0">started. </span><span class="fi" s="51" wi="1">the </span><span class="fi" s="51" wi="2">is </span><span class="fi" s="51" wi="3">(1) </span><span class="fi" s="50" wi="4">they </span><span class="fi" s="51" wi="5">All </span><span class="fi" s="51" wi="6">set </span><span class="fi" s="51" wi="7">those </span><span class="fi" s="51" wi="8">be </span><span class="fi" s="50" wi="9">in </span><span class="fi" s="50" wi="10">are </span><span class="fi" s="51" wi="11">the </span><span class="fi" s="51" wi="12">before </span><span class="fi" s="51" wi="13">in </span><span class="fi" s="51" wi="14">filtering </span><span class="fi" s="51" wi="15">run </span><span class="fi" s="51" wi="16">for </span><span class="fi" s="51" wi="17">to </span><span class="fi" s="51" wi="18">elements </span><span class="fi" s="51" wi="19">causing </span><span class="fi" s="51" wi="20">are </span><span class="fi" s="50" wi="21">Filter </span><span class="fi" s="51" wi="22">(2), </span><span class="fi" s="51" wi="23">filter </span><span class="fi" s="50" wi="24">the </span><span class="fi" s="50" wi="25">returned. </span><span class="fi" s="50" wi="26">order </span><span class="fi" s="51" wi="27">functions </span><span class="fi" s="51" wi="28"><i>Meta</i> </span><span class="fi" s="51" wi="29"><i>Str</i> </span><span class="fi" s="51" wi="30">run </span><span class="fi" s="50" wi="31">applied </span><span class="fi" s="50" wi="32">which </span><span class="fi" s="51" wi="33">of </span><span class="fi" s="51" wi="34">thus </span><span class="fi" s="50" wi="35">in </span><span class="fi" s="51" wi="36">before </span><span class="fi" s="51" wi="37">in </span><span class="fi" s="51" wi="38">function </span><span class="fi" s="50" wi="39">are </span><span class="fi" s="50" wi="40">sets </span></p><p id="p29sr" class="sr-text" aria-live="polite" role="status"></p>
+<h3 id="topdown-traversal">Topdown traversal</h3>
+<p id="p30" class="scramble-box" aria-hidden="true"><span class="fi" s="52" wi="0">to </span><span class="fi" s="52" wi="1">towards </span><span class="fi" s="52" wi="2">and </span><span class="fi" s="52" wi="3">is </span><span class="fi" s="52" wi="4">run. </span><span class="fi" s="52" wi="5">depth-first </span><span class="fi" s="52" wi="6">more </span><span class="fi" s="52" wi="7">the </span><span class="fi" s="52" wi="8">sometimes </span><span class="fi" s="52" wi="9">in </span><span class="fi" s="52" wi="10">the </span><span class="fi" s="52" wi="11">from </span><span class="fi" s="52" wi="12">It </span><span class="fi" s="52" wi="13">the </span><span class="fi" s="52" wi="14">leaves, </span><span class="fi" s="52" wi="15">all </span><span class="fi" s="52" wi="16">traverse </span><span class="fi" s="52" wi="17">document </span><span class="fi" s="52" wi="18">a </span><span class="fi" s="52" wi="19">root </span><span class="fi" s="52" wi="20">natural </span><span class="fi" s="52" wi="21">tree </span><span class="fi" s="52" wi="22">single </span></p><p id="p30sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p31" class="scramble-box" aria-hidden="true"><span class="fi" s="53" wi="0">block </span><span class="fi" s="53" wi="1">filter </span><span class="fi" s="53" wi="2">Blocks, </span><span class="fi" s="53" wi="3">Inlines, </span><span class="fi" s="53" wi="4">order: </span><span class="fi" s="53" wi="5">Str. </span><span class="fi" s="53" wi="6">in </span><span class="fi" s="53" wi="7">the </span><span class="fi" s="53" wi="8">Plain, </span><span class="fi" s="53" wi="9">following </span><span class="fi" s="53" wi="10">a </span><span class="fi" s="53" wi="11">Para, </span><span class="fi" s="53" wi="12">try </span><span class="fi" s="53" wi="13">example, </span><span class="fi" s="53" wi="14">Inlines, </span><span class="fi" s="53" wi="15">list </span><span class="fi" s="53" wi="16">For </span><span class="fi" s="53" wi="17">[Plain [Str &quot;a&quot;], Para [Str &quot;b&quot;]] </span><span class="fi" s="53" wi="18">will </span><span class="fi" s="53" wi="19">Str, </span><span class="fi" s="53" wi="20">functions, </span></p><p id="p31sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p32" class="scramble-box" aria-hidden="true"><span class="fi" s="54" wi="0">can </span><span class="fi" s="55" wi="1">case. </span><span class="fi" s="54" wi="2">second </span><span class="fi" s="55" wi="3">is </span><span class="fi" s="55" wi="4">in </span><span class="fi" s="54" wi="5">short </span><span class="fi" s="54" wi="6">from </span><span class="fi" s="55" wi="7">child-element </span><span class="fi" s="55" wi="8">element </span><span class="fi" s="54" wi="9">filter </span><span class="fi" s="55" wi="10">the </span><span class="fi" s="54" wi="11">be </span><span class="fi" s="55" wi="12">of </span><span class="fi" s="54" wi="13">traversals </span><span class="fi" s="54" wi="14">returning </span><span class="fi" s="54" wi="15">value </span><span class="fi" s="55" wi="16">returned </span><span class="fi" s="54" wi="17">the </span><span class="fi" s="54" wi="18">cut </span><span class="fi" s="54" wi="19">false </span><span class="fi" s="55" wi="20">No </span><span class="fi" s="54" wi="21">function. </span><span class="fi" s="54" wi="22">as </span><span class="fi" s="54" wi="23">Topdown </span><span class="fi" s="55" wi="24">that </span><span class="fi" s="54" wi="25">by </span><span class="fi" s="54" wi="26">a </span><span class="fi" s="55" wi="27">processed </span></p><p id="p32sr" class="sr-text" aria-live="polite" role="status"></p>
+<p id="p33" class="scramble-box" aria-hidden="true"><span class="fi" s="56" wi="0">from </span><span class="fi" s="56" wi="1">exclude </span><span class="fi" s="56" wi="2">footnote </span><span class="fi" s="56" wi="3">the </span><span class="fi" s="56" wi="4">processed, </span><span class="fi" s="56" wi="5">to </span><span class="fi" s="56" wi="6">For </span><span class="fi" s="56" wi="7">being </span><span class="fi" s="56" wi="8">contents </span><span class="fi" s="56" wi="9">example, </span><span class="fi" s="56" wi="10">a </span><span class="fi" s="56" wi="11">write </span><span class="fi" s="56" wi="12">might </span><span class="fi" s="56" wi="13">of </span><span class="fi" s="56" wi="14">one </span></p><p id="p33sr" class="sr-text" aria-live="polite" role="status"></p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="va">traverse</span> <span class="op">=</span> <span class="st">&#39;topdown&#39;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> Note <span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> <span class="va">n</span><span class="op">,</span> <span class="kw">false</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div>
+</article>
+<script>
+(function(){
+  var r = document.querySelector(':root');
+
+  // Init all paragraphs
+  var boxes = document.querySelectorAll('.scramble-box');
+  boxes.forEach(function(box){
+    var fis = Array.from(box.querySelectorAll('.fi'));
+    var n = fis.length;
+    if(n === 0) return;
+
+    // Sort by Y to recover original word order
+    var sorted = fis.slice().sort(function(a,b){
+      return a.getBoundingClientRect().y - b.getBoundingClientRect().y;
+    });
+
+    // sorted[i] has content for original position i.
+    // fis[i] is DOM child i, displays at position i after transform reset.
+    sorted.forEach(function(src, i){
+      var dst = fis[i];
+      dst.setAttribute("ns", src.getAttribute("s"));
+      var key = box.id + "w" + i;
+      var html = src.innerHTML;
+      // Plain text for ::after
+      r.style.setProperty("--" + key, JSON.stringify(src.textContent));
+      // Rich HTML for reveal
+      r.style.setProperty("--" + key + "h", JSON.stringify(html));
+      // Apply formatting on element so ::after inherits it
+      dst.style.fontWeight = html.indexOf("<b>") !== -1 ? "bold" : "";
+      dst.style.fontStyle = html.indexOf("<i>") !== -1 ? "italic" : "";
+      dst.style.textDecoration = html.indexOf("<s>") !== -1 ? "line-through" : "";
+      dst.style.transform = "translate(0,0)";
+      dst.style.position = "relative";
+    });
+
+    fis.forEach(function(e){
+      e.innerHTML = "";
+      e.style.visibility = "visible";
+    });
+  });
+
+  // Reveal: swap ::after to innerHTML in-place, update SR text
+  function reveal(id){
+    boxes.forEach(function(box){
+      var fis = Array.from(box.querySelectorAll('.fi'));
+      var matched = fis.filter(function(e){
+        return e.getAttribute("ns") === ""+id;
+      });
+      if(matched.length === 0) return;
+      // Collect plain text for screen reader
+      var srParts = [];
+      matched.forEach(function(e){
+        var key = box.id + "w" + e.getAttribute("wi");
+        var richHtml = JSON.parse(r.style.getPropertyValue("--" + key + "h"));
+        e.innerHTML = richHtml;
+        srParts.push(e.textContent);
+        r.style.removeProperty("--" + key);
+        r.style.removeProperty("--" + key + "h");
+        e.style.fontWeight = "";
+        e.style.fontStyle = "";
+        e.style.textDecoration = "";
+      });
+      // Append to screen reader element
+      var sr = document.getElementById(box.id + "sr");
+      if(sr) sr.textContent += srParts.join("") + " ";
+    });
+  }
+
+  var gid = 0;
+  function tick(){
+    if(gid < 57){ reveal(gid); gid++; }
+  }
+  if(window.location.search.substring(1) !== "noupdate"){
+    setInterval(tick, 1000);
+  }
+})();
+</script>
+</body>
+</html>
